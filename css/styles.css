@@ -1,0 +1,148 @@
+/* ─── CAPDISPATCH — STYLES.CSS ───────────────────────────────────────────────
+   Estilos complementarios a Tailwind CSS.
+   Tailwind maneja el 90% del diseño; este archivo cubre:
+   - Fuente y base global
+   - Scroll y overscroll en tablet
+   - Animaciones
+   - Estados de botones táctiles
+   - Inputs numéricos (ocultar flechas)
+   - Scrollbar personalizado
+────────────────────────────────────────────────────────────────────────────── */
+
+/* ─── BASE ────────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent; /* Elimina flash azul en tap (Android) */
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden; /* La app es pantalla completa, el scroll es interno */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f9fafb;
+  overscroll-behavior: none; /* Evita el rebote de página en iOS */
+}
+
+#app {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+}
+
+/* ─── INPUTS — OCULTAR FLECHAS NUMÉRICAS ──────────────────────────────────── */
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* ─── SCROLLBAR PERSONALIZADO ─────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 999px;
+}
+
+/* ─── ANIMACIONES ─────────────────────────────────────────────────────────── */
+
+/* Entrada de pantalla */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#app > div {
+  animation: fadeSlideUp 0.2s ease-out;
+}
+
+/* Modal deslizante desde abajo */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.cd-modal > div {
+  animation: slideUp 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Toast */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.cd-toast {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* ─── BOTONES TÁCTILES ────────────────────────────────────────────────────── */
+
+/* Escala en tap para botones con active:scale-95 de Tailwind */
+button {
+  touch-action: manipulation; /* Elimina el delay de 300ms en iOS */
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Feedback táctil para tarjetas de producto */
+.product-card:active {
+  transform: scale(0.97);
+}
+
+/* ─── PIN PAD ─────────────────────────────────────────────────────────────── */
+
+.pin-key:active {
+  transform: scale(0.92);
+  background-color: #dbeafe;
+}
+
+/* ─── PANEL DEL SUPERVISOR — TABS ─────────────────────────────────────────── */
+
+/* Scroll horizontal suave en tabs sin scrollbar visible */
+.tab-btn {
+  flex-shrink: 0;
+}
+
+/* ─── ESTADO OFFLINE ──────────────────────────────────────────────────────── */
+
+/* Borde sutil en inputs cuando la app está offline */
+body.offline input,
+body.offline select {
+  border-color: #fde68a;
+}
+
+/* ─── UTILIDADES ──────────────────────────────────────────────────────────── */
+
+/* Texto no seleccionable en elementos de UI */
+.select-none {
+  user-select: none;
+  -webkit-user-select: none;
+}
