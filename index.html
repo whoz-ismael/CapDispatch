@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="Sistema de despacho de tapas — CapDispatch" />
+
+  <!-- PWA: tema y color de barra de estado -->
+  <meta name="theme-color" content="#2563eb" />
+
+  <!-- PWA: soporte iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="CapDispatch" />
+
+  <!-- PWA: icono para iOS (usa el mismo placeholder por ahora) -->
+  <link rel="apple-touch-icon" href="https://placehold.co/192x192/2563eb/ffffff?text=CD" />
+
+  <!-- Manifest -->
+  <link rel="manifest" href="/manifest.json" />
+
+  <title>CapDispatch</title>
+
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Estilos propios -->
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+
+  <!-- Punto de montaje de la app -->
+  <!-- app.js construye toda la UI aquí dinámicamente -->
+  <div id="app"></div>
+
+  <!-- Scripts — orden obligatorio: cada archivo depende del anterior -->
+  <script src="/js/config.js"></script>   <!-- Supabase, constantes, helpers base    -->
+  <script src="/js/idb.js"></script>      <!-- IndexedDB: caché y ventas pendientes  -->
+  <script src="/js/cost.js"></script>     <!-- Cálculo de costo por paquete          -->
+  <script src="/js/sync.js"></script>     <!-- Sincronización offline → Supabase     -->
+  <script src="/js/auth.js"></script>     <!-- Autenticación por PIN                 -->
+  <script src="/js/app.js"></script>      <!-- UI y lógica principal                 -->
+
+</body>
+</html>
