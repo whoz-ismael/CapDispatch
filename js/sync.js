@@ -231,10 +231,57 @@ function isSyncing() {
   return _isSyncing;
 }
 
+// ─── SINCRONIZAR ENTRADAS DE MATERIA PRIMA ────────────────────────────────────
+
+async function _syncOneMaterialEntry(entry) {
+  try {
+    const record = {
+      id:            entry.id,
+      type:          entry.type,
+      receipt_date:  entry.receipt_date,
+      month:         entry.month,
+      weight_lbs:    entry.weight_lbs,
+      notes:         entry.notes || '',
+      operator_name: entry.operator_name || '',
+      status:        'pending',
+      created_at:    entry.created_at || new Date().toISOString(),
+    };
+
+    const { error } = await supabaseRequest('material_receipts', {
+      method: 'POST',
+      body:   record,
+      prefer: 'return=minimal'
+    });
+
+    if (error) throw new Error(JSON.stringify(error));
+
+    await pendingMaterialEntryRemove(entry.id);
+    return { success: true };
+
+  } catch (err) {
+    console.error(`_syncOneMaterialEntry: falló entrada ${entry.id}:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+async function syncMaterialEntries() {
+  if (!navigator.onLine) return;
+
+  const pending = await pendingMaterialEntryGetAll();
+  if (pending.length === 0) return;
+
+  for (const entry of pending) {
+    if (entry.sync_status !== 'pending') continue;
+    await _syncOneMaterialEntry(entry);
+  }
+}
+
+
 // ─── LISTENERS DE RED ─────────────────────────────────────────────────────────
 // Cuando el dispositivo recupera internet, sincroniza automáticamente
 
 window.addEventListener('online', () => {
   console.log('Conexión restaurada — sincronizando ventas pendientes...');
   syncPendingSales();
+  syncMaterialEntries();
 });

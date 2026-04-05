@@ -316,6 +316,11 @@ function renderProductsScreen() {
               </button>
               ${pendBadge}
             </div>` : ''}
+          <button id="material-entry-btn" class="p-2 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors" title="Entrada de materia prima">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+          </button>
           <button id="production-btn" class="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors" title="Ver producción">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
@@ -411,6 +416,7 @@ function renderProductsScreen() {
   });
 
   $('logout-btn').addEventListener('click', () => { logout(); renderPinScreen(); });
+  $('material-entry-btn').addEventListener('click', () => renderMaterialEntryScreen());
   $('production-btn').addEventListener('click', () => renderProductionScreen());
 
   if (isSup) {
@@ -1572,6 +1578,204 @@ function renderAccountModal(acc = null) {
   });
 }
 
+// ─── PANTALLA: ENTRADA DE MATERIA PRIMA ──────────────────────────────────────
+
+const MATERIAL_TYPES = [
+  { value: 'recycled',       label: 'Reciclado'     },
+  { value: 'pellet',         label: 'Pellet Virgen'  },
+  { value: 'pellet_regular', label: 'Pellet'         },
+  { value: 'colorant',       label: 'Colorante'      },
+];
+
+function renderMaterialEntryScreen() {
+  $('app').innerHTML = `
+    <div class="min-h-screen bg-gray-50 flex flex-col">
+
+      <!-- Header -->
+      <header class="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
+        <button id="mat-back-btn" class="p-2 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <div>
+          <h1 class="text-base font-bold text-gray-800">Entrada de Materia Prima</h1>
+          <p class="text-xs text-gray-400">Registra el material recibido</p>
+        </div>
+      </header>
+
+      <main class="flex-1 p-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+
+          <form id="mat-entry-form" novalidate class="space-y-4">
+
+            <!-- Tipo de material -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">
+                Tipo de material <span class="text-red-500">*</span>
+              </label>
+              <div class="grid grid-cols-2 gap-2">
+                ${MATERIAL_TYPES.map(t => `
+                  <label class="mat-type-option flex items-center gap-2 border-2 border-gray-200 rounded-xl p-3 cursor-pointer transition-all hover:border-orange-300 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50">
+                    <input type="radio" name="mat-type" value="${t.value}" class="sr-only" required>
+                    <div class="mat-type-dot w-3 h-3 rounded-full border-2 border-gray-300 flex-shrink-0"></div>
+                    <span class="text-sm font-semibold text-gray-700">${t.label}</span>
+                  </label>
+                `).join('')}
+              </div>
+              <p id="mat-error-type" class="text-red-500 text-xs mt-1 hidden">Selecciona el tipo de material.</p>
+            </div>
+
+            <!-- Fecha -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1" for="mat-date">
+                Fecha <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="mat-date"
+                type="date"
+                class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-orange-400 focus:outline-none transition-colors"
+                value="${getCurrentDate()}"
+                required
+              >
+              <p id="mat-error-date" class="text-red-500 text-xs mt-1 hidden">La fecha es obligatoria.</p>
+            </div>
+
+            <!-- Peso -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1" for="mat-weight">
+                Peso (lbs) <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="mat-weight"
+                type="number"
+                inputmode="decimal"
+                class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-orange-400 focus:outline-none transition-colors"
+                placeholder="0.00"
+                min="0.01"
+                step="0.01"
+                required
+              >
+              <p id="mat-error-weight" class="text-red-500 text-xs mt-1 hidden">El peso debe ser mayor a 0.</p>
+            </div>
+
+            <!-- Notas (opcional) -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1" for="mat-notes">
+                Notas <span class="text-gray-400 font-normal">(opcional)</span>
+              </label>
+              <textarea
+                id="mat-notes"
+                class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-orange-400 focus:outline-none transition-colors resize-none"
+                rows="2"
+                placeholder="Ej: Llegó en 3 sacos, se verificó el peso en báscula..."
+              ></textarea>
+            </div>
+
+            <button
+              type="submit"
+              id="mat-submit-btn"
+              class="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold py-4 rounded-xl transition-colors text-base shadow-sm"
+            >
+              Registrar entrada
+            </button>
+
+          </form>
+
+        </div>
+      </main>
+
+    </div>
+  `;
+
+  $('mat-back-btn').addEventListener('click', () => renderProductsScreen());
+
+  // Radio button visual update
+  document.querySelectorAll('input[name="mat-type"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.querySelectorAll('.mat-type-option').forEach(lbl => {
+        const dot = lbl.querySelector('.mat-type-dot');
+        const inp = lbl.querySelector('input[type="radio"]');
+        if (inp.checked) {
+          dot.className = 'mat-type-dot w-3 h-3 rounded-full border-2 border-orange-500 bg-orange-500 flex-shrink-0';
+        } else {
+          dot.className = 'mat-type-dot w-3 h-3 rounded-full border-2 border-gray-300 flex-shrink-0';
+        }
+      });
+    });
+  });
+
+  $('mat-entry-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Validate
+    let valid = true;
+    const typeInput = document.querySelector('input[name="mat-type"]:checked');
+    const date      = $('mat-date').value;
+    const weight    = parseFloat($('mat-weight').value);
+    const notes     = $('mat-notes').value.trim();
+
+    const showErr = (id) => { const el = $(id); if (el) { el.classList.remove('hidden'); } };
+    const hideErr = (id) => { const el = $(id); if (el) { el.classList.add('hidden'); } };
+
+    hideErr('mat-error-type');
+    hideErr('mat-error-date');
+    hideErr('mat-error-weight');
+
+    if (!typeInput) { showErr('mat-error-type');   valid = false; }
+    if (!date)      { showErr('mat-error-date');   valid = false; }
+    if (!weight || weight <= 0) { showErr('mat-error-weight'); valid = false; }
+
+    if (!valid) return;
+
+    const btn = $('mat-submit-btn');
+    btn.textContent = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+      await saveMaterialEntry({
+        type:          typeInput.value,
+        receipt_date:  date,
+        month:         date.slice(0, 7),
+        weight_lbs:    weight,
+        notes,
+        operator_name: App.user?.name || '',
+      });
+
+      showToast('Entrada registrada', 'success');
+      renderProductsScreen();
+    } catch (err) {
+      showToast('Error al guardar la entrada', 'error');
+      btn.textContent = 'Registrar entrada';
+      btn.disabled = false;
+    }
+  });
+}
+
+async function saveMaterialEntry(data) {
+  const entry = {
+    id:            generateId('mat'),
+    type:          data.type,
+    receipt_date:  data.receipt_date,
+    month:         data.month,
+    weight_lbs:    data.weight_lbs,
+    notes:         data.notes || '',
+    operator_name: data.operator_name || '',
+    status:        'pending',
+    created_at:    new Date().toISOString(),
+    sync_status:   'pending',
+  };
+
+  // Save locally first
+  await pendingMaterialEntryAdd(entry);
+
+  // Sync immediately if online
+  if (navigator.onLine) {
+    await syncMaterialEntries();
+  }
+}
+
+
 // ─── INICIALIZACIÓN ───────────────────────────────────────────────────────────
 
 async function initApp() {
@@ -1588,6 +1792,7 @@ async function initApp() {
   // Intentar sincronizar al arrancar si hay pendientes e internet
   if (navigator.onLine) {
     syncPendingSales();
+    syncMaterialEntries();
   }
 
   // Si hay sesión activa, ir directo a productos
