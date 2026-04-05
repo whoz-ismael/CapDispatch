@@ -1,4 +1,4 @@
-const CACHE_NAME = 'capdispatch-v2';
+const CACHE_NAME = 'capdispatch-v3';
 
 // Solo activos locales — nunca URLs externas en addAll
 // (si una sola falla, addAll aborta toda la instalación)
