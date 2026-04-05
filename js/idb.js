@@ -2,12 +2,13 @@
 // Maneja todo el almacenamiento local de la app.
 //
 // Stores:
-//   pending_sales  → ventas creadas offline, esperando sincronización
-//   app_cache      → caché de datos de Supabase (productos, clientes, precios,
-//                    datos de costo, inversionista)
+//   pending_sales             → ventas creadas offline, esperando sincronización
+//   pending_material_entries  → entradas de materia prima creadas offline
+//   app_cache                 → caché de datos de Supabase (productos, clientes, precios,
+//                               datos de costo, inversionista)
 
 const DB_NAME    = 'capdispatch-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let _db = null;
 
@@ -27,6 +28,12 @@ function idbOpen() {
       if (!db.objectStoreNames.contains('pending_sales')) {
         const store = db.createObjectStore('pending_sales', { keyPath: 'id' });
         store.createIndex('created_at', 'created_at');
+      }
+
+      // Store para entradas de materia prima pendientes de sincronizar
+      if (!db.objectStoreNames.contains('pending_material_entries')) {
+        const matStore = db.createObjectStore('pending_material_entries', { keyPath: 'id' });
+        matStore.createIndex('created_at', 'created_at');
       }
 
       // Store para caché general de datos remotos
@@ -134,6 +141,49 @@ function pendingSaleMarkFailed(id, errorMessage) {
 function pendingSaleCount() {
   return new Promise((resolve, reject) => {
     const store = idbTx('pending_sales', 'readonly');
+    const request = store.count();
+    request.onsuccess = e => resolve(e.target.result);
+    request.onerror   = e => reject(e.target.error);
+  });
+}
+
+// ─── ENTRADAS DE MATERIA PRIMA PENDIENTES ────────────────────────────────────
+
+// Guarda una entrada de materia prima pendiente de sincronizar
+function pendingMaterialEntryAdd(entry) {
+  return new Promise((resolve, reject) => {
+    const store = idbTx('pending_material_entries', 'readwrite');
+    const record = { ...entry, sync_status: 'pending' };
+    const request = store.add(record);
+    request.onsuccess = () => resolve();
+    request.onerror   = e  => reject(e.target.error);
+  });
+}
+
+// Devuelve todas las entradas de materia prima pendientes
+function pendingMaterialEntryGetAll() {
+  return new Promise((resolve, reject) => {
+    const store = idbTx('pending_material_entries', 'readonly');
+    const request = store.index('created_at').getAll();
+    request.onsuccess = e => resolve(e.target.result || []);
+    request.onerror   = e => reject(e.target.error);
+  });
+}
+
+// Elimina una entrada del store local tras sincronización exitosa
+function pendingMaterialEntryRemove(id) {
+  return new Promise((resolve, reject) => {
+    const store = idbTx('pending_material_entries', 'readwrite');
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror   = e  => reject(e.target.error);
+  });
+}
+
+// Devuelve el total de entradas de materia prima pendientes
+function pendingMaterialEntryCount() {
+  return new Promise((resolve, reject) => {
+    const store = idbTx('pending_material_entries', 'readonly');
     const request = store.count();
     request.onsuccess = e => resolve(e.target.result);
     request.onerror   = e => reject(e.target.error);
