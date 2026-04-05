@@ -321,6 +321,11 @@ function renderProductsScreen() {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
           </button>
+          <button id="package-weight-btn" class="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" title="Peso de paquete de tapas">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+            </svg>
+          </button>
           <button id="production-btn" class="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors" title="Ver producción">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
@@ -417,6 +422,7 @@ function renderProductsScreen() {
 
   $('logout-btn').addEventListener('click', () => { logout(); renderPinScreen(); });
   $('material-entry-btn').addEventListener('click', () => renderMaterialEntryScreen());
+  $('package-weight-btn').addEventListener('click', () => renderPackageWeightScreen());
   $('production-btn').addEventListener('click', () => renderProductionScreen());
 
   if (isSup) {
@@ -1659,6 +1665,19 @@ function renderMaterialEntryScreen() {
               <p id="mat-error-weight" class="text-red-500 text-xs mt-1 hidden">El peso debe ser mayor a 0.</p>
             </div>
 
+            <!-- Proveedor (opcional) -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1" for="mat-provider">
+                Proveedor <span class="text-gray-400 font-normal">(opcional)</span>
+              </label>
+              <input
+                id="mat-provider"
+                type="text"
+                class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-orange-400 focus:outline-none transition-colors"
+                placeholder="Nombre del proveedor"
+              >
+            </div>
+
             <!-- Notas (opcional) -->
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-1" for="mat-notes">
@@ -1714,6 +1733,7 @@ function renderMaterialEntryScreen() {
     const date      = $('mat-date').value;
     const weight    = parseFloat($('mat-weight').value);
     const notes     = $('mat-notes').value.trim();
+    const provider  = $('mat-provider').value.trim();
 
     const showErr = (id) => { const el = $(id); if (el) { el.classList.remove('hidden'); } };
     const hideErr = (id) => { const el = $(id); if (el) { el.classList.add('hidden'); } };
@@ -1739,6 +1759,7 @@ function renderMaterialEntryScreen() {
         month:         date.slice(0, 7),
         weight_lbs:    weight,
         notes,
+        provider,
         operator_name: App.user?.name || '',
       });
 
@@ -1760,6 +1781,7 @@ async function saveMaterialEntry(data) {
     month:         data.month,
     weight_lbs:    data.weight_lbs,
     notes:         data.notes || '',
+    provider:      data.provider || '',
     operator_name: data.operator_name || '',
     status:        'pending',
     created_at:    new Date().toISOString(),
@@ -1772,6 +1794,154 @@ async function saveMaterialEntry(data) {
   // Sync immediately if online
   if (navigator.onLine) {
     await syncMaterialEntries();
+  }
+}
+
+
+// ─── PANTALLA: PESO DE PAQUETE DE TAPAS ──────────────────────────────────────
+
+function renderPackageWeightScreen() {
+  $('app').innerHTML = `
+    <div class="min-h-screen bg-gray-50 flex flex-col">
+
+      <!-- Header -->
+      <header class="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
+        <button id="pw-back-btn" class="p-2 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <div>
+          <h1 class="text-base font-bold text-gray-800">Peso de Paquete de Tapas</h1>
+          <p class="text-xs text-gray-400">Registra el peso de 1,000 tapas de tu turno</p>
+        </div>
+      </header>
+
+      <main class="flex-1 p-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+
+          <!-- Contexto informativo -->
+          <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5">
+            <p class="text-blue-700 text-sm font-semibold mb-1">¿Cómo hacerlo?</p>
+            <p class="text-blue-600 text-xs leading-relaxed">Cuenta exactamente 1,000 tapas, pésalas en la báscula y anota el resultado aquí. Este peso se usa como referencia para todos los paquetes del turno.</p>
+          </div>
+
+          <form id="pw-form" novalidate class="space-y-4">
+
+            <!-- Fecha del turno -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1" for="pw-date">
+                Fecha del turno <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="pw-date"
+                type="date"
+                class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-blue-400 focus:outline-none transition-colors"
+                value="${getCurrentDate()}"
+                required
+              >
+              <p id="pw-error-date" class="text-red-500 text-xs mt-1 hidden">La fecha es obligatoria.</p>
+            </div>
+
+            <!-- Peso en libras -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1" for="pw-weight">
+                Peso de 1,000 tapas (lb) <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="pw-weight"
+                type="number"
+                inputmode="decimal"
+                class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-blue-400 focus:outline-none transition-colors"
+                placeholder="0.00"
+                min="0.01"
+                step="0.01"
+                required
+              >
+              <p id="pw-error-weight" class="text-red-500 text-xs mt-1 hidden">El peso debe ser mayor a 0.</p>
+            </div>
+
+            <!-- Notas (opcional) -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1" for="pw-notes">
+                Notas <span class="text-gray-400 font-normal">(opcional)</span>
+              </label>
+              <textarea
+                id="pw-notes"
+                class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-blue-400 focus:outline-none transition-colors resize-none"
+                rows="2"
+                placeholder="Ej: Turno matutino, báscula calibrada..."
+              ></textarea>
+            </div>
+
+            <button
+              type="submit"
+              id="pw-submit-btn"
+              class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-4 rounded-xl transition-colors text-base shadow-sm"
+            >
+              Registrar peso
+            </button>
+
+          </form>
+
+        </div>
+      </main>
+
+    </div>
+  `;
+
+  $('pw-back-btn').addEventListener('click', () => renderProductsScreen());
+
+  $('pw-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const date   = $('pw-date').value;
+    const weight = parseFloat($('pw-weight').value);
+    const notes  = $('pw-notes').value.trim();
+
+    const showErr = (id) => { const el = $(id); if (el) el.classList.remove('hidden'); };
+    const hideErr = (id) => { const el = $(id); if (el) el.classList.add('hidden'); };
+
+    hideErr('pw-error-date');
+    hideErr('pw-error-weight');
+
+    let valid = true;
+    if (!date)               { showErr('pw-error-date');   valid = false; }
+    if (!weight || weight <= 0) { showErr('pw-error-weight'); valid = false; }
+
+    if (!valid) return;
+
+    const btn = $('pw-submit-btn');
+    btn.textContent = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+      await savePackageWeight({ shift_date: date, weight_lbs: weight, notes });
+      showToast('Peso registrado', 'success');
+      renderProductsScreen();
+    } catch (err) {
+      showToast('Error al guardar el peso', 'error');
+      btn.textContent = 'Registrar peso';
+      btn.disabled = false;
+    }
+  });
+}
+
+async function savePackageWeight(data) {
+  const entry = {
+    id:            generateId('pw'),
+    weight_lbs:    data.weight_lbs,
+    operator_name: App.user?.name || '',
+    shift_date:    data.shift_date,
+    notes:         data.notes || '',
+    created_at:    new Date().toISOString(),
+    sync_status:   'pending',
+  };
+
+  await pendingPackageWeightAdd(entry);
+
+  if (navigator.onLine) {
+    await syncPackageWeights();
   }
 }
 

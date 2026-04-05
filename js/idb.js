@@ -8,7 +8,7 @@
 //                               datos de costo, inversionista)
 
 const DB_NAME    = 'capdispatch-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let _db = null;
 
@@ -34,6 +34,12 @@ function idbOpen() {
       if (!db.objectStoreNames.contains('pending_material_entries')) {
         const matStore = db.createObjectStore('pending_material_entries', { keyPath: 'id' });
         matStore.createIndex('created_at', 'created_at');
+      }
+
+      // Store para pesos de paquetes pendientes de sincronizar (versión 3+)
+      if (!db.objectStoreNames.contains('pending_package_weights')) {
+        const pwStore = db.createObjectStore('pending_package_weights', { keyPath: 'id' });
+        pwStore.createIndex('created_at', 'created_at');
       }
 
       // Store para caché general de datos remotos
@@ -187,5 +193,38 @@ function pendingMaterialEntryCount() {
     const request = store.count();
     request.onsuccess = e => resolve(e.target.result);
     request.onerror   = e => reject(e.target.error);
+  });
+}
+
+// ─── PESOS DE PAQUETES PENDIENTES ─────────────────────────────────────────────
+
+// Guarda un peso de paquete pendiente de sincronizar
+function pendingPackageWeightAdd(entry) {
+  return new Promise((resolve, reject) => {
+    const store = idbTx('pending_package_weights', 'readwrite');
+    const record = { ...entry, sync_status: 'pending' };
+    const request = store.add(record);
+    request.onsuccess = () => resolve();
+    request.onerror   = e  => reject(e.target.error);
+  });
+}
+
+// Devuelve todos los pesos de paquetes pendientes
+function pendingPackageWeightGetAll() {
+  return new Promise((resolve, reject) => {
+    const store = idbTx('pending_package_weights', 'readonly');
+    const request = store.index('created_at').getAll();
+    request.onsuccess = e => resolve(e.target.result || []);
+    request.onerror   = e => reject(e.target.error);
+  });
+}
+
+// Elimina un peso de paquete del store local tras sincronización exitosa
+function pendingPackageWeightRemove(id) {
+  return new Promise((resolve, reject) => {
+    const store = idbTx('pending_package_weights', 'readwrite');
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror   = e  => reject(e.target.error);
   });
 }
