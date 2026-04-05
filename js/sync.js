@@ -243,6 +243,7 @@ async function _syncOneMaterialEntry(entry) {
       weight_lbs:    entry.weight_lbs,
       notes:         entry.notes || '',
       operator_name: entry.operator_name || '',
+      provider:      entry.provider || '',
       status:        'pending',
       created_at:    entry.created_at || new Date().toISOString(),
     };
@@ -276,6 +277,47 @@ async function syncMaterialEntries() {
   }
 }
 
+// ─── SINCRONIZAR PESOS DE PAQUETES ────────────────────────────────────────────
+
+async function _syncOnePackageWeight(entry) {
+  try {
+    const record = {
+      id:            entry.id,
+      weight_lbs:    entry.weight_lbs,
+      operator_name: entry.operator_name || '',
+      shift_date:    entry.shift_date,
+      notes:         entry.notes || '',
+      created_at:    entry.created_at || new Date().toISOString(),
+    };
+
+    const { error } = await supabaseRequest('package_weights', {
+      method: 'POST',
+      body:   record,
+      prefer: 'return=minimal'
+    });
+
+    if (error) throw new Error(JSON.stringify(error));
+
+    await pendingPackageWeightRemove(entry.id);
+    return { success: true };
+
+  } catch (err) {
+    console.error(`_syncOnePackageWeight: falló entrada ${entry.id}:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+async function syncPackageWeights() {
+  if (!navigator.onLine) return;
+
+  const pending = await pendingPackageWeightGetAll();
+  if (pending.length === 0) return;
+
+  for (const entry of pending) {
+    if (entry.sync_status !== 'pending') continue;
+    await _syncOnePackageWeight(entry);
+  }
+}
 
 // ─── LISTENERS DE RED ─────────────────────────────────────────────────────────
 // Cuando el dispositivo recupera internet, sincroniza automáticamente
@@ -284,4 +326,5 @@ window.addEventListener('online', () => {
   console.log('Conexión restaurada — sincronizando ventas pendientes...');
   syncPendingSales();
   syncMaterialEntries();
+  syncPackageWeights();
 });
