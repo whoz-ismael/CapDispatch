@@ -309,30 +309,30 @@ function renderProductsScreen() {
         <div class="flex items-center gap-2">
           ${isSup ? `
             <div class="relative">
-              <button id="sup-btn" class="p-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button id="sup-btn" class="p-3 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
               </button>
               ${pendBadge}
             </div>` : ''}
-          <button id="material-entry-btn" class="p-2 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors" title="Entrada de materia prima">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button id="material-entry-btn" class="p-3 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors" title="Entrada de materia prima">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
           </button>
-          <button id="package-weight-btn" class="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" title="Peso de paquete de tapas">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button id="package-weight-btn" class="p-3 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" title="Peso de paquete de tapas">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
             </svg>
           </button>
-          <button id="production-btn" class="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors" title="Ver producción">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button id="production-btn" class="p-3 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors" title="Ver producción">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
           </button>
-          <button id="logout-btn" class="p-2 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button id="logout-btn" class="p-3 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
             </svg>
           </button>
@@ -1828,19 +1828,14 @@ function renderPackageWeightScreen() {
 
           <form id="pw-form" novalidate class="space-y-4">
 
-            <!-- Fecha del turno -->
+            <!-- Fecha del turno (sólo lectura) -->
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1" for="pw-date">
-                Fecha del turno <span class="text-red-500">*</span>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">
+                Fecha del turno
               </label>
-              <input
-                id="pw-date"
-                type="date"
-                class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-blue-400 focus:outline-none transition-colors"
-                value="${getCurrentDate()}"
-                required
-              >
-              <p id="pw-error-date" class="text-red-500 text-xs mt-1 hidden">La fecha es obligatoria.</p>
+              <div class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 text-gray-600">
+                ${new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </div>
             </div>
 
             <!-- Peso en libras -->
@@ -1895,18 +1890,16 @@ function renderPackageWeightScreen() {
   $('pw-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const date   = $('pw-date').value;
+    const date   = getCurrentDate();
     const weight = parseFloat($('pw-weight').value);
     const notes  = $('pw-notes').value.trim();
 
     const showErr = (id) => { const el = $(id); if (el) el.classList.remove('hidden'); };
     const hideErr = (id) => { const el = $(id); if (el) el.classList.add('hidden'); };
 
-    hideErr('pw-error-date');
     hideErr('pw-error-weight');
 
     let valid = true;
-    if (!date)               { showErr('pw-error-date');   valid = false; }
     if (!weight || weight <= 0) { showErr('pw-error-weight'); valid = false; }
 
     if (!valid) return;
