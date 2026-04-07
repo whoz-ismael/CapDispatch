@@ -845,11 +845,11 @@ async function processSale(totalRevenue, totalBenefitDiscount, totalAmortization
 function renderSuccessScreen(synced, offlineMsg = '') {
   $('app').innerHTML = `
     <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
-      <div class="w-20 h-20 ${synced ? 'bg-green-100' : 'bg-yellow-100'} rounded-full flex items-center justify-center mb-5">
-        <span class="text-4xl">${synced ? '✓' : '⏳'}</span>
+      <div class="w-20 h-20 ${synced ? 'bg-blue-100' : 'bg-yellow-100'} rounded-full flex items-center justify-center mb-5">
+        <span class="text-4xl">${synced ? '📋' : '⏳'}</span>
       </div>
-      <h2 class="text-2xl font-bold text-gray-800 mb-2">${synced ? '¡Venta registrada!' : 'Venta guardada'}</h2>
-      <p class="text-gray-400 text-sm mb-8 max-w-xs">${synced ? 'La venta quedó registrada exitosamente en el sistema.' : offlineMsg}</p>
+      <h2 class="text-2xl font-bold text-gray-800 mb-2">${synced ? 'Venta enviada para revisión' : 'Venta guardada'}</h2>
+      <p class="text-gray-500 text-sm mb-8 max-w-xs">${synced ? 'La venta fue registrada y está pendiente de confirmación por el administrador en CapFlow.' : offlineMsg}</p>
       <button id="new-sale-btn"
         class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-colors shadow-sm">
         Nueva venta
