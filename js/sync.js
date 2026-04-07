@@ -8,10 +8,11 @@
 //
 // Por cada venta pendiente:
 //   a. Genera número de factura DISP-XXX
-//   b. Inserta en `sales`
-//   c. Inserta en `sale_payments`
-//   d. Si el cliente es el inversionista → actualiza tabla `investor`
-//   e. Elimina la venta del store local
+//   b. Inserta en `sales` con status 'pending_review'
+//   c. Elimina la venta del store local
+//
+// NOTA: El pago y los ajustes de inventario se procesan en CapFlow
+// cuando el administrador confirma la venta desde el módulo "Ventas Pendientes".
 
 // ─── ESTADO ───────────────────────────────────────────────────────────────────
 let _isSyncing    = false;   // Evita sincronizaciones concurrentes
@@ -53,15 +54,20 @@ async function _insertSale(sale, invoiceNumber) {
     sale_date:      sale.sale_date,
     month:          sale.month,
     client_id:      sale.client_id,
-    status:         'confirmed',
+    status:         'pending_review',
     notes:          sale.notes || `Despachado por ${sale.operator_name}`,
     invoice_number: invoiceNumber,
+    operator_id:    sale.operator_id   || null,
+    operator_name:  sale.operator_name || '',
     has_ncf:        false,
     ncf_number:     '',
     itbis_rate:     0,
     itbis_amount:   0,
     totals:         sale.totals,
     lines:          sale.lines,
+    payment_method: sale.payment_method || 'cash',
+    is_investor:    sale.is_investor    || false,
+    investor_id:    sale.investor_id    || null,
     attachments:    [],
     created_at:     new Date(sale.created_at).toISOString(),
     updated_at:     new Date().toISOString()
@@ -141,21 +147,13 @@ async function _syncOne(sale) {
     const invoiceNumber = await _nextInvoiceNumber();
     sale.invoice_number = invoiceNumber;
 
-    // 2. Insertar venta
+    // 2. Insertar venta como 'pending_review'
+    // El pago, el inventario y el inversionista se actualizan desde CapFlow
+    // cuando el administrador confirme la venta.
     const { error: saleError } = await _insertSale(sale, invoiceNumber);
     if (saleError) throw new Error(`Error insertando venta: ${JSON.stringify(saleError)}`);
 
-    // 3. Insertar pago
-    const { error: payError } = await _insertPayment(sale);
-    if (payError) throw new Error(`Error insertando pago: ${JSON.stringify(payError)}`);
-
-    // 4. Actualizar inversionista si aplica
-    if (sale.is_investor) {
-      const { error: invError } = await _updateInvestor(sale);
-      if (invError) throw new Error(`Error actualizando inversionista: ${JSON.stringify(invError)}`);
-    }
-
-    // 5. Eliminar del store local
+    // 3. Eliminar del store local
     await pendingSaleRemove(sale.id);
     return { success: true };
 
