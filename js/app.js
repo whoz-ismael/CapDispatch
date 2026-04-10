@@ -357,6 +357,23 @@ function renderWindowSelectionMenu() {
         <!-- Sección: Peso y producción -->
         <p class="text-xs text-gray-400 uppercase font-semibold tracking-wide mt-1">Peso y producción</p>
 
+        <button id="menu-materia"
+          class="w-full text-left bg-white rounded-2xl border-2 border-orange-200 shadow-sm p-5 flex items-center gap-4 hover:border-orange-400 hover:bg-orange-50 active:scale-95 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-base font-bold text-gray-800">Entrada de materia prima</p>
+            <p class="text-sm text-gray-400 mt-0.5">Registrar reciclado, pellet y colorante</p>
+          </div>
+          <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+
         <button id="menu-peso"
           class="w-full text-left bg-white rounded-2xl border-2 border-teal-200 shadow-sm p-5 flex items-center gap-4 hover:border-teal-400 hover:bg-teal-50 active:scale-95 transition-all">
           <div class="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0">
@@ -399,6 +416,7 @@ function renderWindowSelectionMenu() {
   $('logout-btn').addEventListener('click', () => { logout(); renderPinScreen(); });
   $('menu-despacho').addEventListener('click', renderProductsScreen);
   if (isSup) $('menu-supervisor').addEventListener('click', renderSupervisorPanel);
+  $('menu-materia').addEventListener('click', () => renderMaterialEntryScreen());
   $('menu-peso').addEventListener('click', () => renderPackageWeightScreen());
   $('menu-produccion').addEventListener('click', () => renderProductionScreen());
 }
@@ -1794,7 +1812,7 @@ function renderMaterialEntryScreen() {
     </div>
   `;
 
-  $('mat-back-btn').addEventListener('click', () => renderProductsScreen());
+  $('mat-back-btn').addEventListener('click', () => renderWindowSelectionMenu());
 
   // Radio button visual update
   document.querySelectorAll('input[name="mat-type"]').forEach(radio => {
@@ -1851,7 +1869,7 @@ function renderMaterialEntryScreen() {
       });
 
       showToast('Entrada registrada', 'success');
-      renderProductsScreen();
+      renderWindowSelectionMenu();
     } catch (err) {
       showToast('Error al guardar la entrada', 'error');
       btn.textContent = 'Registrar entrada';
