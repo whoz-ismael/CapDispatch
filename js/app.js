@@ -399,8 +399,8 @@ function renderWindowSelectionMenu() {
   $('logout-btn').addEventListener('click', () => { logout(); renderPinScreen(); });
   $('menu-despacho').addEventListener('click', renderProductsScreen);
   if (isSup) $('menu-supervisor').addEventListener('click', renderSupervisorPanel);
-  $('menu-peso').addEventListener('click', renderPackageWeightScreen);
-  $('menu-produccion').addEventListener('click', renderProductionScreen);
+  $('menu-peso').addEventListener('click', () => renderPackageWeightScreen());
+  $('menu-produccion').addEventListener('click', () => renderProductionScreen());
 }
 
 // ─── PANTALLA: DESPACHO (PRODUCTOS) ──────────────────────────────────────────
@@ -419,45 +419,17 @@ function renderProductsScreen() {
       <!-- Header -->
       <header class="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span class="text-white text-xs font-bold">CD</span>
-          </div>
+          <button id="back-btn" class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors flex-shrink-0">←</button>
           <div>
             <p class="text-sm font-semibold text-gray-800">${App.user?.name}</p>
             <span id="connection-badge" class="text-xs"></span>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          ${isSup ? `
-            <div class="relative">
-              <button id="sup-btn" class="p-3 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-              </button>
-              ${pendBadge}
-            </div>` : ''}
-          <button id="material-entry-btn" class="p-3 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors" title="Entrada de materia prima">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-            </svg>
-          </button>
-          <button id="package-weight-btn" class="p-3 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" title="Peso de paquete de tapas">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-            </svg>
-          </button>
-          <button id="production-btn" class="p-3 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors" title="Ver producción">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-          </button>
-          <button id="logout-btn" class="p-3 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-            </svg>
-          </button>
-        </div>
+        <button id="logout-btn" class="p-3 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </button>
       </header>
 
       <!-- Grid de productos -->
@@ -541,14 +513,8 @@ function renderProductsScreen() {
     });
   });
 
+  $('back-btn').addEventListener('click', renderWindowSelectionMenu);
   $('logout-btn').addEventListener('click', () => { logout(); renderPinScreen(); });
-  $('material-entry-btn').addEventListener('click', () => renderMaterialEntryScreen());
-  $('package-weight-btn').addEventListener('click', () => renderPackageWeightScreen());
-  $('production-btn').addEventListener('click', () => renderProductionScreen());
-
-  if (isSup) {
-    $('sup-btn')?.addEventListener('click', renderSupervisorPanel);
-  }
 
   if (App.cart.length > 0) {
     $('clear-cart-btn').addEventListener('click', () => {
