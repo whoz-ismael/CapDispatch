@@ -4,11 +4,13 @@
 // Stores:
 //   pending_sales             → ventas creadas offline, esperando sincronización
 //   pending_material_entries  → entradas de materia prima creadas offline
+//   pending_package_weights   → pesos de paquetes creados offline
+//   pending_daily_production  → registros diarios de producción creados offline
 //   app_cache                 → caché de datos de Supabase (productos, clientes, precios,
 //                               datos de costo, inversionista)
 
 const DB_NAME    = 'capdispatch-db';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 let _db = null;
 
@@ -40,6 +42,12 @@ function idbOpen() {
       if (!db.objectStoreNames.contains('pending_package_weights')) {
         const pwStore = db.createObjectStore('pending_package_weights', { keyPath: 'id' });
         pwStore.createIndex('created_at', 'created_at');
+      }
+
+      // Store para registros diarios de producción pendientes de sincronizar (versión 4+)
+      if (!db.objectStoreNames.contains('pending_daily_production')) {
+        const dpStore = db.createObjectStore('pending_daily_production', { keyPath: 'id' });
+        dpStore.createIndex('created_at', 'created_at');
       }
 
       // Store para caché general de datos remotos
@@ -223,6 +231,39 @@ function pendingPackageWeightGetAll() {
 function pendingPackageWeightRemove(id) {
   return new Promise((resolve, reject) => {
     const store = idbTx('pending_package_weights', 'readwrite');
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror   = e  => reject(e.target.error);
+  });
+}
+
+// ─── REGISTROS DIARIOS DE PRODUCCIÓN PENDIENTES ───────────────────────────────
+
+// Guarda un registro diario de producción pendiente de sincronizar
+function pendingDailyProductionAdd(entry) {
+  return new Promise((resolve, reject) => {
+    const store = idbTx('pending_daily_production', 'readwrite');
+    const record = { ...entry, sync_status: 'pending' };
+    const request = store.add(record);
+    request.onsuccess = () => resolve();
+    request.onerror   = e  => reject(e.target.error);
+  });
+}
+
+// Devuelve todos los registros diarios de producción pendientes
+function pendingDailyProductionGetAll() {
+  return new Promise((resolve, reject) => {
+    const store = idbTx('pending_daily_production', 'readonly');
+    const request = store.index('created_at').getAll();
+    request.onsuccess = e => resolve(e.target.result || []);
+    request.onerror   = e => reject(e.target.error);
+  });
+}
+
+// Elimina un registro del store local tras sincronización exitosa
+function pendingDailyProductionRemove(id) {
+  return new Promise((resolve, reject) => {
+    const store = idbTx('pending_daily_production', 'readwrite');
     const request = store.delete(id);
     request.onsuccess = () => resolve();
     request.onerror   = e  => reject(e.target.error);
