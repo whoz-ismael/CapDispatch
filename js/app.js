@@ -24,6 +24,34 @@ const App = {
   editPrice:        900,
 };
 
+
+// ─── CIERRE AUTOMÁTICO POR INACTIVIDAD ───────────────────────────────────────
+
+const INACTIVITY_TIMEOUT_MS = 4 * 60 * 1000; // 4 minutos
+let _inactivityTimer = null;
+
+function startInactivityTimer() {
+  stopInactivityTimer();
+  _inactivityTimer = setTimeout(() => {
+    if (!App.user) return;
+    showToast('Sesión cerrada por inactividad', 'warning');
+    logout();
+    renderPinScreen();
+  }, INACTIVITY_TIMEOUT_MS);
+}
+
+function stopInactivityTimer() {
+  if (_inactivityTimer) {
+    clearTimeout(_inactivityTimer);
+    _inactivityTimer = null;
+  }
+}
+
+function resetInactivityTimer() {
+  if (!App.user) return;
+  startInactivityTimer();
+}
+
 // ─── UTILIDADES DE UI ─────────────────────────────────────────────────────────
 
 const $ = id => document.getElementById(id);
@@ -146,6 +174,8 @@ async function loadAppData() {
 // ─── PANTALLA: PIN ────────────────────────────────────────────────────────────
 
 function renderPinScreen() {
+  stopInactivityTimer();
+  App.user = null;
   $('app').innerHTML = `
     <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
       <div class="w-full max-w-sm">
@@ -287,6 +317,7 @@ function getProductColor(name) {
 // ─── PANTALLA: MENÚ DE VENTANAS ───────────────────────────────────────────────
 
 function renderWindowSelectionMenu() {
+  startInactivityTimer();
   const isSup = App.user?.role === ROLES.SUPERVISOR;
 
   $('app').innerHTML = `
@@ -562,6 +593,7 @@ function renderProductsScreen() {
 
   window.addEventListener('online',  setConnectionBadge);
   window.addEventListener('offline', setConnectionBadge);
+
   onSyncUpdate(async () => {
     App.pendingCount = await pendingSaleCount();
     setConnectionBadge();
@@ -2092,6 +2124,11 @@ async function initApp() {
 
   window.addEventListener('online',  setConnectionBadge);
   window.addEventListener('offline', setConnectionBadge);
+
+  // Resetear timer de inactividad con cualquier interacción del usuario
+  ['touchstart', 'click', 'keydown', 'mousemove'].forEach(evt => {
+    document.addEventListener(evt, resetInactivityTimer, { passive: true });
+  });
 }
 
 // ─── PANTALLA: REGISTRO DIARIO DE TAPAS ──────────────────────────────────────
