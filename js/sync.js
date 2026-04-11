@@ -323,6 +323,46 @@ async function syncPackageWeights() {
   }
 }
 
+// ─── SINCRONIZACIÓN: PRODUCCIÓN DIARIA ───────────────────────────────────────
+
+async function _syncOneDailyProduction(entry) {
+  try {
+    const record = {
+      id:              entry.id,
+      operator_id:     entry.operator_id,
+      operator_name:   entry.operator_name,
+      production_date: entry.production_date,
+      month:           entry.month,
+      color:           entry.color,
+      quantity:        entry.quantity,
+      notes:           entry.notes || '',
+      status:          'pending_review',
+      created_at:      entry.created_at || new Date().toISOString(),
+    };
+    const { error } = await supabaseRequest('daily_production_logs', {
+      method: 'POST',
+      body:   record,
+      prefer: 'return=minimal',
+    });
+    if (error) throw new Error(JSON.stringify(error));
+    await pendingDailyProductionRemove(entry.id);
+    return { success: true };
+  } catch (err) {
+    console.error(`_syncOneDailyProduction: falló entrada ${entry.id}:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+async function syncDailyProduction() {
+  if (!navigator.onLine) return;
+  const pending = await pendingDailyProductionGetAll();
+  if (pending.length === 0) return;
+  for (const entry of pending) {
+    if (entry.sync_status !== 'pending') continue;
+    await _syncOneDailyProduction(entry);
+  }
+}
+
 // ─── LISTENERS DE RED ─────────────────────────────────────────────────────────
 // Cuando el dispositivo recupera internet, sincroniza automáticamente
 
@@ -331,4 +371,5 @@ window.addEventListener('online', () => {
   syncPendingSales();
   syncMaterialEntries();
   syncPackageWeights();
+  syncDailyProduction();
 });

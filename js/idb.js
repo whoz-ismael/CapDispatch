@@ -8,7 +8,7 @@
 //                               datos de costo, inversionista)
 
 const DB_NAME    = 'capdispatch-db';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 let _db = null;
 
@@ -40,6 +40,12 @@ function idbOpen() {
       if (!db.objectStoreNames.contains('pending_package_weights')) {
         const pwStore = db.createObjectStore('pending_package_weights', { keyPath: 'id' });
         pwStore.createIndex('created_at', 'created_at');
+      }
+
+      // Store para registros de producción diaria pendientes de sincronizar (versión 4+)
+      if (!db.objectStoreNames.contains('pending_daily_production')) {
+        const dpStore = db.createObjectStore('pending_daily_production', { keyPath: 'id' });
+        dpStore.createIndex('created_at', 'created_at');
       }
 
       // Store para caché general de datos remotos
@@ -223,6 +229,39 @@ function pendingPackageWeightGetAll() {
 function pendingPackageWeightRemove(id) {
   return new Promise((resolve, reject) => {
     const store = idbTx('pending_package_weights', 'readwrite');
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror   = e  => reject(e.target.error);
+  });
+}
+
+// ─── DAILY PRODUCTION (pending_daily_production) ──────────────────────────────
+
+// Guarda un registro de producción diaria pendiente de sincronizar
+function pendingDailyProductionAdd(entry) {
+  return new Promise((resolve, reject) => {
+    const store = idbTx('pending_daily_production', 'readwrite');
+    const record = { ...entry, sync_status: 'pending' };
+    const request = store.add(record);
+    request.onsuccess = () => resolve();
+    request.onerror   = e  => reject(e.target.error);
+  });
+}
+
+// Devuelve todos los registros de producción diaria pendientes
+function pendingDailyProductionGetAll() {
+  return new Promise((resolve, reject) => {
+    const store = idbTx('pending_daily_production', 'readonly');
+    const request = store.index('created_at').getAll();
+    request.onsuccess = e => resolve(e.target.result || []);
+    request.onerror   = e => reject(e.target.error);
+  });
+}
+
+// Elimina un registro de producción diaria tras sincronización exitosa
+function pendingDailyProductionRemove(id) {
+  return new Promise((resolve, reject) => {
+    const store = idbTx('pending_daily_production', 'readwrite');
     const request = store.delete(id);
     request.onsuccess = () => resolve();
     request.onerror   = e  => reject(e.target.error);
