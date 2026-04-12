@@ -24,6 +24,34 @@ const App = {
   editPrice:        900,
 };
 
+
+// ─── CIERRE AUTOMÁTICO POR INACTIVIDAD ───────────────────────────────────────
+
+const INACTIVITY_TIMEOUT_MS = 4 * 60 * 1000; // 4 minutos
+let _inactivityTimer = null;
+
+function startInactivityTimer() {
+  stopInactivityTimer();
+  _inactivityTimer = setTimeout(() => {
+    if (!App.user) return;
+    showToast('Sesión cerrada por inactividad', 'warning');
+    logout();
+    renderPinScreen();
+  }, INACTIVITY_TIMEOUT_MS);
+}
+
+function stopInactivityTimer() {
+  if (_inactivityTimer) {
+    clearTimeout(_inactivityTimer);
+    _inactivityTimer = null;
+  }
+}
+
+function resetInactivityTimer() {
+  if (!App.user) return;
+  startInactivityTimer();
+}
+
 // ─── UTILIDADES DE UI ─────────────────────────────────────────────────────────
 
 const $ = id => document.getElementById(id);
@@ -146,6 +174,8 @@ async function loadAppData() {
 // ─── PANTALLA: PIN ────────────────────────────────────────────────────────────
 
 function renderPinScreen() {
+  stopInactivityTimer();
+  App.user = null;
   $('app').innerHTML = `
     <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
       <div class="w-full max-w-sm">
@@ -216,7 +246,7 @@ function renderPinScreen() {
     if (result.success) {
       App.user = result.user;
       await loadAppData();
-      renderProductsScreen();
+      renderWindowSelectionMenu();
     } else {
       showError(result.error || 'PIN incorrecto');
       btn.textContent = 'Entrar';
@@ -235,7 +265,7 @@ function renderPinScreen() {
     if (result.success) {
       App.user = result.user;
       await loadAppData();
-      renderProductsScreen();
+      renderWindowSelectionMenu();
     }
     // Si no es válido, simplemente no hace nada — el usuario sigue escribiendo
     // o presiona "Entrar" para ver el error
@@ -284,13 +314,11 @@ function getProductColor(name) {
 
 // ─── PANTALLA: PRODUCTOS ──────────────────────────────────────────────────────
 
-function renderProductsScreen() {
-  const cartCount  = App.cart.reduce((s, i) => s + i.quantity, 0);
-  const cartTotal  = App.cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-  const isSup      = App.user?.role === ROLES.SUPERVISOR;
-  const pendBadge  = App.pendingCount > 0
-    ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">${App.pendingCount}</span>`
-    : '';
+// ─── PANTALLA: MENÚ DE VENTANAS ───────────────────────────────────────────────
+
+function renderWindowSelectionMenu() {
+  startInactivityTimer();
+  const isSup = App.user?.role === ROLES.SUPERVISOR;
 
   $('app').innerHTML = `
     <div class="min-h-screen bg-gray-50 flex flex-col">
@@ -306,37 +334,169 @@ function renderProductsScreen() {
             <span id="connection-badge" class="text-xs"></span>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          ${isSup ? `
-            <div class="relative">
-              <button id="sup-btn" class="p-3 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-              </button>
-              ${pendBadge}
-            </div>` : ''}
-          <button id="material-entry-btn" class="p-3 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors" title="Entrada de materia prima">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        <button id="logout-btn" class="p-3 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors" title="Cerrar sesión">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </button>
+      </header>
+
+      <!-- Opciones -->
+      <main class="flex-1 p-5 flex flex-col gap-4">
+
+        <p class="text-xs text-gray-400 uppercase font-semibold tracking-wide">Selecciona una ventana</p>
+
+        <!-- Despacho -->
+        <button id="menu-despacho"
+          class="w-full text-left bg-white rounded-2xl border-2 border-blue-200 shadow-sm p-5 flex items-center gap-4 hover:border-blue-400 hover:bg-blue-50 active:scale-95 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
-          </button>
-          <button id="package-weight-btn" class="p-3 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" title="Peso de paquete de tapas">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-base font-bold text-gray-800">Despacho</p>
+            <p class="text-sm text-gray-400 mt-0.5">Registrar ventas de productos</p>
+          </div>
+          <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+
+        <!-- Panel de supervisor — solo visible para supervisores -->
+        ${isSup ? `
+        <button id="menu-supervisor"
+          class="w-full text-left bg-white rounded-2xl border-2 border-purple-200 shadow-sm p-5 flex items-center gap-4 hover:border-purple-400 hover:bg-purple-50 active:scale-95 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
-          </button>
-          <button id="production-btn" class="p-3 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors" title="Ver producción">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-base font-bold text-gray-800">Panel de supervisor</p>
+            <p class="text-sm text-gray-400 mt-0.5">Ventas, operarios, precios y cuentas</p>
+          </div>
+          <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+        ` : ''}
+
+        <!-- Sección: Peso y producción -->
+        <p class="text-xs text-gray-400 uppercase font-semibold tracking-wide mt-1">Peso y producción</p>
+
+        <button id="menu-materia"
+          class="w-full text-left bg-white rounded-2xl border-2 border-orange-200 shadow-sm p-5 flex items-center gap-4 hover:border-orange-400 hover:bg-orange-50 active:scale-95 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
-          </button>
-          <button id="logout-btn" class="p-3 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-base font-bold text-gray-800">Entrada de materia prima</p>
+            <p class="text-sm text-gray-400 mt-0.5">Registrar reciclado, pellet y colorante</p>
+          </div>
+          <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+
+        <button id="menu-peso"
+          class="w-full text-left bg-white rounded-2xl border-2 border-teal-200 shadow-sm p-5 flex items-center gap-4 hover:border-teal-400 hover:bg-teal-50 active:scale-95 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
             </svg>
-          </button>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-base font-bold text-gray-800">Peso de paquete</p>
+            <p class="text-sm text-gray-400 mt-0.5">Registrar el peso de 1,000 tapas del turno</p>
+          </div>
+          <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+
+        <button id="menu-produccion"
+          class="w-full text-left bg-white rounded-2xl border-2 border-green-200 shadow-sm p-5 flex items-center gap-4 hover:border-green-400 hover:bg-green-50 active:scale-95 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-base font-bold text-gray-800">Producción</p>
+            <p class="text-sm text-gray-400 mt-0.5">Ver el reporte mensual de producción</p>
+          </div>
+          <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+
+        <button id="menu-tapas"
+          class="w-full text-left bg-white rounded-2xl border-2 border-purple-200 shadow-sm p-5 flex items-center gap-4 hover:border-purple-400 hover:bg-purple-50 active:scale-95 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-base font-bold text-gray-800">Registrar tapas del día</p>
+            <p class="text-sm text-gray-400 mt-0.5">Ingresar tapas producidas por color y cantidad</p>
+          </div>
+          <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+
+      </main>
+    </div>
+  `;
+
+  setConnectionBadge();
+  $('logout-btn').addEventListener('click', () => { logout(); renderPinScreen(); });
+  $('menu-despacho').addEventListener('click', renderProductsScreen);
+  if (isSup) $('menu-supervisor').addEventListener('click', renderSupervisorPanel);
+  $('menu-materia').addEventListener('click', () => renderMaterialEntryScreen());
+  $('menu-peso').addEventListener('click', () => renderPackageWeightScreen());
+  $('menu-produccion').addEventListener('click', () => renderProductionScreen());
+  $('menu-tapas').addEventListener('click', () => renderDailyProductionScreen());
+}
+
+// ─── PANTALLA: DESPACHO (PRODUCTOS) ──────────────────────────────────────────
+
+function renderProductsScreen() {
+  const cartCount  = App.cart.reduce((s, i) => s + i.quantity, 0);
+  const cartTotal  = App.cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  const isSup      = App.user?.role === ROLES.SUPERVISOR;
+  const pendBadge  = App.pendingCount > 0
+    ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">${App.pendingCount}</span>`
+    : '';
+
+  $('app').innerHTML = `
+    <div class="min-h-screen bg-gray-50 flex flex-col">
+
+      <!-- Header -->
+      <header class="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+        <div class="flex items-center gap-3">
+          <button id="back-btn" class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors flex-shrink-0">←</button>
+          <div>
+            <p class="text-sm font-semibold text-gray-800">${App.user?.name}</p>
+            <span id="connection-badge" class="text-xs"></span>
+          </div>
         </div>
+        <button id="logout-btn" class="p-3 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </button>
       </header>
 
       <!-- Grid de productos -->
@@ -420,14 +580,8 @@ function renderProductsScreen() {
     });
   });
 
+  $('back-btn').addEventListener('click', renderWindowSelectionMenu);
   $('logout-btn').addEventListener('click', () => { logout(); renderPinScreen(); });
-  $('material-entry-btn').addEventListener('click', () => renderMaterialEntryScreen());
-  $('package-weight-btn').addEventListener('click', () => renderPackageWeightScreen());
-  $('production-btn').addEventListener('click', () => renderProductionScreen());
-
-  if (isSup) {
-    $('sup-btn')?.addEventListener('click', renderSupervisorPanel);
-  }
 
   if (App.cart.length > 0) {
     $('clear-cart-btn').addEventListener('click', () => {
@@ -439,6 +593,7 @@ function renderProductsScreen() {
 
   window.addEventListener('online',  setConnectionBadge);
   window.addEventListener('offline', setConnectionBadge);
+
   onSyncUpdate(async () => {
     App.pendingCount = await pendingSaleCount();
     setConnectionBadge();
@@ -895,7 +1050,7 @@ async function renderProductionScreen(month = getCurrentMonth()) {
     </div>
   `;
 
-  $('back-btn').addEventListener('click', renderProductsScreen);
+  $('back-btn').addEventListener('click', renderWindowSelectionMenu);
 
   $('prev-month').addEventListener('click', () => {
     const prev = monthNum === 1
@@ -953,7 +1108,7 @@ async function loadProductionData(month) {
     operatorIds.add(opId);
   });
 
-  // Resolver nombres — solo operarios que tienen producción ese mes
+  // Resolver nombres — solo operarios que tienen producción ese mes (reporte mensual)
   const operators = [...operatorIds].map(id => {
     const op = App.operators.find(o => o.id === id);
     return { id, name: op?.name || 'Desconocido' };
@@ -1054,7 +1209,7 @@ async function renderSupervisorPanel(activeTab = 'sales') {
   `;
 
   setConnectionBadge();
-  $('back-btn').addEventListener('click', renderProductsScreen);
+  $('back-btn').addEventListener('click', renderWindowSelectionMenu);
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => renderSupervisorPanel(btn.dataset.tab));
@@ -1707,7 +1862,7 @@ function renderMaterialEntryScreen() {
     </div>
   `;
 
-  $('mat-back-btn').addEventListener('click', () => renderProductsScreen());
+  $('mat-back-btn').addEventListener('click', () => renderWindowSelectionMenu());
 
   // Radio button visual update
   document.querySelectorAll('input[name="mat-type"]').forEach(radio => {
@@ -1764,7 +1919,7 @@ function renderMaterialEntryScreen() {
       });
 
       showToast('Entrada registrada', 'success');
-      renderProductsScreen();
+      renderWindowSelectionMenu();
     } catch (err) {
       showToast('Error al guardar la entrada', 'error');
       btn.textContent = 'Registrar entrada';
@@ -1885,7 +2040,7 @@ function renderPackageWeightScreen() {
     </div>
   `;
 
-  $('pw-back-btn').addEventListener('click', () => renderProductsScreen());
+  $('pw-back-btn').addEventListener('click', () => renderWindowSelectionMenu());
 
   $('pw-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1911,7 +2066,7 @@ function renderPackageWeightScreen() {
     try {
       await savePackageWeight({ shift_date: date, weight_lbs: weight, notes });
       showToast('Peso registrado', 'success');
-      renderProductsScreen();
+      renderWindowSelectionMenu();
     } catch (err) {
       showToast('Error al guardar el peso', 'error');
       btn.textContent = 'Registrar peso';
@@ -1958,17 +2113,230 @@ async function initApp() {
     syncMaterialEntries();
   }
 
-  // Si hay sesión activa, ir directo a productos
+  // Si hay sesión activa, ir al menú de ventanas
   if (isLoggedIn()) {
     App.user = getCurrentUser();
     await loadAppData();
-    renderProductsScreen();
+    renderWindowSelectionMenu();
   } else {
     renderPinScreen();
   }
 
   window.addEventListener('online',  setConnectionBadge);
   window.addEventListener('offline', setConnectionBadge);
+
+  // Resetear timer de inactividad con cualquier interacción del usuario
+  ['touchstart', 'click', 'keydown', 'mousemove'].forEach(evt => {
+    document.addEventListener(evt, resetInactivityTimer, { passive: true });
+  });
+}
+
+// ─── PANTALLA: REGISTRO DIARIO DE TAPAS ──────────────────────────────────────
+
+const PRODUCTION_COLORS = [
+  { value: 'negro',        label: 'Negro',        bg: '#1f2937', text: '#fff' },
+  { value: 'blanco',       label: 'Blanco',        bg: '#f9fafb', text: '#374151', border: '#d1d5db' },
+  { value: 'azul',         label: 'Azul',          bg: '#1d4ed8', text: '#fff' },
+  { value: 'rojo',         label: 'Rojo',          bg: '#dc2626', text: '#fff' },
+  { value: 'verde',        label: 'Verde',         bg: '#16a34a', text: '#fff' },
+  { value: 'amarillo',     label: 'Amarillo',      bg: '#ca8a04', text: '#fff' },
+  { value: 'naranja',      label: 'Naranja',       bg: '#ea580c', text: '#fff' },
+  { value: 'marron',       label: 'Marrón',        bg: '#92400e', text: '#fff' },
+  { value: 'transparente', label: 'Transparente',  bg: '#e5e7eb', text: '#374151', border: '#9ca3af' },
+  { value: 'rosa',         label: 'Rosa',          bg: '#db2777', text: '#fff' },
+  { value: 'gris',         label: 'Gris',          bg: '#6b7280', text: '#fff' },
+  { value: 'morado',       label: 'Morado',        bg: '#7c3aed', text: '#fff' },
+  { value: 'otro',         label: 'Otro',          bg: '#f3f4f6', text: '#374151', border: '#d1d5db' },
+];
+
+let _selectedColor = null;
+
+function getCurrentDate() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+async function renderDailyProductionScreen() {
+  _selectedColor = null;
+  const today = getCurrentDate();
+
+  $('app').innerHTML = `
+    <div class="min-h-screen bg-gray-50 flex flex-col">
+      <header class="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
+        <button id="back-btn" class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors flex-shrink-0">←</button>
+        <div>
+          <h1 class="text-base font-bold text-gray-800">Registrar tapas del día</h1>
+          <p class="text-xs text-gray-400">${App.user?.name || ''}</p>
+        </div>
+      </header>
+
+      <main class="flex-1 p-4 space-y-4">
+
+        <!-- Fecha -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Fecha</label>
+          <input id="prod-date" type="date" value="${today}"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300"/>
+        </div>
+
+        <!-- Selector de color -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Color</label>
+          <div class="grid grid-cols-3 gap-2" id="color-grid">
+            ${PRODUCTION_COLORS.map(c => `
+              <button data-color="${c.value}"
+                class="color-chip flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-transparent text-sm font-semibold transition-all"
+                style="background:${c.bg}; color:${c.text}; ${c.border ? `border-color:${c.border};` : ''}">
+                ${c.label}
+              </button>`).join('')}
+          </div>
+        </div>
+
+        <!-- Cantidad -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Cantidad de tapas</label>
+          <input id="prod-qty" type="number" min="1" placeholder="Ej: 5000"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300"/>
+        </div>
+
+        <!-- Notas (opcional) -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Notas <span class="text-gray-300 font-normal">(opcional)</span></label>
+          <textarea id="prod-notes" rows="2" placeholder="Observaciones del turno..."
+            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"></textarea>
+        </div>
+
+        <!-- Botón guardar -->
+        <button id="prod-submit"
+          class="w-full bg-purple-600 text-white font-bold py-4 rounded-2xl hover:bg-purple-700 active:scale-95 transition-all shadow-md">
+          Guardar registro
+        </button>
+
+        <!-- Registros de hoy -->
+        <div>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Mis registros del día</p>
+          <div id="today-entries">
+            <p class="text-gray-400 text-sm text-center py-4">Cargando...</p>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  `;
+
+  $('back-btn').addEventListener('click', renderWindowSelectionMenu);
+
+  // Selección de color
+  document.querySelectorAll('.color-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.color-chip').forEach(b => b.style.outline = 'none');
+      _selectedColor = btn.dataset.color;
+      btn.style.outline = '3px solid #7c3aed';
+      btn.style.outlineOffset = '2px';
+    });
+  });
+
+  $('prod-submit').addEventListener('click', handleDailyProductionSubmit);
+
+  await loadTodayEntries(today);
+}
+
+async function handleDailyProductionSubmit() {
+  const date  = $('prod-date').value;
+  const qty   = parseInt($('prod-qty').value, 10);
+  const notes = ($('prod-notes').value || '').trim();
+
+  if (!_selectedColor) {
+    alert('Selecciona un color antes de guardar.');
+    return;
+  }
+  if (!qty || qty < 1) {
+    alert('Ingresa una cantidad válida (mínimo 1).');
+    return;
+  }
+  if (!date) {
+    alert('Selecciona una fecha.');
+    return;
+  }
+
+  const btn = $('prod-submit');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  const entry = {
+    id:              generateId('dpl'),
+    operator_id:     App.user.id,
+    operator_name:   App.user.name,
+    production_date: date,
+    month:           date.slice(0, 7),
+    color:           _selectedColor,
+    quantity:        qty,
+    notes:           notes,
+    status:          'pending_review',
+    created_at:      new Date().toISOString(),
+    sync_status:     'pending',
+  };
+
+  try {
+    await pendingDailyProductionAdd(entry);
+
+    if (navigator.onLine) {
+      await syncDailyProduction();
+      showToast('Registro guardado ✓', 'success');
+    } else {
+      showToast('Sin conexión — se enviará al reconectar', 'warning');
+    }
+
+    // Limpiar formulario
+    _selectedColor = null;
+    document.querySelectorAll('.color-chip').forEach(b => b.style.outline = 'none');
+    $('prod-qty').value = '';
+    $('prod-notes').value = '';
+
+    await loadTodayEntries($('prod-date').value);
+  } catch (err) {
+    console.error('Error guardando registro de tapas:', err);
+    showToast('Error al guardar — intenta de nuevo', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Guardar registro';
+  }
+}
+
+async function loadTodayEntries(date) {
+  const container = $('today-entries');
+  if (!container) return;
+
+  try {
+    const { data, error } = await supabaseRequest(
+      `daily_production_logs?operator_id=eq.${App.user.id}&production_date=eq.${date}&order=created_at.desc`
+    );
+
+    if (error || !data || data.length === 0) {
+      container.innerHTML = `<p class="text-gray-400 text-sm text-center py-4">Sin registros para esta fecha</p>`;
+      return;
+    }
+
+    const colorMap = Object.fromEntries(PRODUCTION_COLORS.map(c => [c.value, c]));
+
+    container.innerHTML = data.map(entry => {
+      const c = colorMap[entry.color] || { label: entry.color, bg: '#e5e7eb', text: '#374151' };
+      const statusBadge = entry.status === 'confirmed'
+        ? `<span class="text-xs font-semibold text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">Confirmado</span>`
+        : `<span class="text-xs font-semibold text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-full px-2 py-0.5">Pendiente</span>`;
+      return `
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
+          <span class="w-4 h-4 rounded-full flex-shrink-0 border" style="background:${c.bg}; border-color:${c.border || c.bg};"></span>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold text-gray-800">${c.label} — ${entry.quantity.toLocaleString('es-DO')} tapas</p>
+            ${entry.notes ? `<p class="text-xs text-gray-400 truncate">${entry.notes}</p>` : ''}
+          </div>
+          ${statusBadge}
+        </div>`;
+    }).join('');
+  } catch (err) {
+    container.innerHTML = `<p class="text-gray-400 text-sm text-center py-4">Sin registros para esta fecha</p>`;
+  }
 }
 
 // Arrancar cuando el DOM esté listo

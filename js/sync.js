@@ -29,21 +29,27 @@ function _notifyUpdate() {
 
 // ─── NÚMERO DE FACTURA ────────────────────────────────────────────────────────
 
-// Lee el último número DISP- usado en Supabase y devuelve el siguiente.
-// Si no hay ninguno, empieza desde DISP-001.
+// Llama a la función RPC atómica `next_invoice_number` en Supabase para obtener
+// el siguiente número DISP-XXX sin condiciones de carrera.
+// Si la función aún no existe (migración pendiente), cae al método anterior.
 async function _nextInvoiceNumber() {
-  const { data, error } = await supabaseRequest(
+  const { data, error } = await supabaseRequest('rpc/next_invoice_number', {
+    method: 'POST',
+    body:   { p_prefix: INVOICE_PREFIX }
+  });
+
+  if (!error && data) return data; // ej: "DISP-007"
+
+  // Fallback: consulta directa (no-atómica) — usada mientras la migración no
+  // haya sido aplicada en Supabase.
+  const { data: rows } = await supabaseRequest(
     `sales?invoice_number=like.${INVOICE_PREFIX}*&select=invoice_number&order=created_at.desc&limit=1`
   );
 
-  if (error || !data || data.length === 0) {
-    return `${INVOICE_PREFIX}001`;
-  }
-
-  const last   = data[0].invoice_number; // ej: "DISP-007"
-  const num    = parseInt(last.replace(INVOICE_PREFIX, ''), 10);
-  const next   = String(num + 1).padStart(3, '0');
-  return `${INVOICE_PREFIX}${next}`;
+  if (!rows || rows.length === 0) return `${INVOICE_PREFIX}001`;
+  const last = rows[0].invoice_number; // ej: "DISP-007"
+  const num  = parseInt(last.replace(INVOICE_PREFIX, ''), 10);
+  return `${INVOICE_PREFIX}${String(num + 1).padStart(3, '0')}`;
 }
 
 // ─── INSERTAR VENTA EN SUPABASE ───────────────────────────────────────────────
@@ -317,6 +323,46 @@ async function syncPackageWeights() {
   }
 }
 
+// ─── SINCRONIZACIÓN: PRODUCCIÓN DIARIA ───────────────────────────────────────
+
+async function _syncOneDailyProduction(entry) {
+  try {
+    const record = {
+      id:              entry.id,
+      operator_id:     entry.operator_id,
+      operator_name:   entry.operator_name,
+      production_date: entry.production_date,
+      month:           entry.month,
+      color:           entry.color,
+      quantity:        entry.quantity,
+      notes:           entry.notes || '',
+      status:          'pending_review',
+      created_at:      entry.created_at || new Date().toISOString(),
+    };
+    const { error } = await supabaseRequest('daily_production_logs', {
+      method: 'POST',
+      body:   record,
+      prefer: 'return=minimal',
+    });
+    if (error) throw new Error(JSON.stringify(error));
+    await pendingDailyProductionRemove(entry.id);
+    return { success: true };
+  } catch (err) {
+    console.error(`_syncOneDailyProduction: falló entrada ${entry.id}:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+async function syncDailyProduction() {
+  if (!navigator.onLine) return;
+  const pending = await pendingDailyProductionGetAll();
+  if (pending.length === 0) return;
+  for (const entry of pending) {
+    if (entry.sync_status !== 'pending') continue;
+    await _syncOneDailyProduction(entry);
+  }
+}
+
 // ─── LISTENERS DE RED ─────────────────────────────────────────────────────────
 // Cuando el dispositivo recupera internet, sincroniza automáticamente
 
@@ -325,4 +371,5 @@ window.addEventListener('online', () => {
   syncPendingSales();
   syncMaterialEntries();
   syncPackageWeights();
+  syncDailyProduction();
 });
