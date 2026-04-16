@@ -2132,40 +2132,8 @@ async function initApp() {
 }
 
 
-function getColorFromProductName(name) {
-  const n = name.toLowerCase();
-  if (n.includes('negro') || n.includes('negra'))       return { bg: '#1f2937', text: '#fff' };
-  if (n.includes('blanco') || n.includes('blanca'))     return { bg: '#f9fafb', text: '#374151', border: '#d1d5db' };
-  if (n.includes('azul'))                               return { bg: '#1d4ed8', text: '#fff' };
-  if (n.includes('rojo') || n.includes('roja'))         return { bg: '#dc2626', text: '#fff' };
-  if (n.includes('verde'))                              return { bg: '#16a34a', text: '#fff' };
-  if (n.includes('amarillo') || n.includes('amarilla')) return { bg: '#ca8a04', text: '#fff' };
-  if (n.includes('naranja'))                            return { bg: '#ea580c', text: '#fff' };
-  if (n.includes('marron') || n.includes('marrón'))     return { bg: '#92400e', text: '#fff' };
-  if (n.includes('transparente'))                       return { bg: '#e5e7eb', text: '#374151', border: '#9ca3af' };
-  if (n.includes('rosa'))                               return { bg: '#db2777', text: '#fff' };
-  if (n.includes('gris'))                               return { bg: '#6b7280', text: '#fff' };
-  if (n.includes('morado') || n.includes('morada'))     return { bg: '#7c3aed', text: '#fff' };
-  return { bg: '#6b7280', text: '#fff' };
-}
-
 // ─── PANTALLA: REGISTRO DIARIO DE TAPAS ──────────────────────────────────────
 
-const PRODUCTION_COLORS = [
-  { value: 'negro',        label: 'Negro',        bg: '#1f2937', text: '#fff' },
-  { value: 'blanco',       label: 'Blanco',        bg: '#f9fafb', text: '#374151', border: '#d1d5db' },
-  { value: 'azul',         label: 'Azul',          bg: '#1d4ed8', text: '#fff' },
-  { value: 'rojo',         label: 'Rojo',          bg: '#dc2626', text: '#fff' },
-  { value: 'verde',        label: 'Verde',         bg: '#16a34a', text: '#fff' },
-  { value: 'amarillo',     label: 'Amarillo',      bg: '#ca8a04', text: '#fff' },
-  { value: 'naranja',      label: 'Naranja',       bg: '#ea580c', text: '#fff' },
-  { value: 'marron',       label: 'Marrón',        bg: '#92400e', text: '#fff' },
-  { value: 'transparente', label: 'Transparente',  bg: '#e5e7eb', text: '#374151', border: '#9ca3af' },
-  { value: 'rosa',         label: 'Rosa',          bg: '#db2777', text: '#fff' },
-  { value: 'gris',         label: 'Gris',          bg: '#6b7280', text: '#fff' },
-  { value: 'morado',       label: 'Morado',        bg: '#7c3aed', text: '#fff' },
-  { value: 'otro',         label: 'Otro',          bg: '#f3f4f6', text: '#374151', border: '#d1d5db' },
-];
 
 let _selectedColor = null;
 
@@ -2197,17 +2165,15 @@ async function renderDailyProductionScreen() {
             class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300"/>
         </div>
 
-        <!-- Selector de color -->
+        <!-- Selector de producto -->
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Color</label>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Producto</label>
           <div class="grid grid-cols-3 gap-2" id="color-grid">
             ${App.products.length === 0
               ? `<p class="col-span-3 text-gray-400 text-sm text-center py-2">Sin productos disponibles</p>`
               : App.products.map(p => {
-                  const s = getColorFromProductName(p.name);
                   return `<button data-color="${p.name}"
-                    class="color-chip flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-transparent text-sm font-semibold transition-all"
-                    style="background:${s.bg}; color:${s.text}; ${s.border ? `border-color:${s.border};` : ''}">
+                    class="color-chip flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-gray-200 text-sm font-semibold transition-all bg-gray-50 text-gray-800 hover:bg-gray-100">
                     ${p.name}
                   </button>`;
                 }).join('')}
@@ -2339,15 +2305,9 @@ async function loadTodayEntries(date) {
       return;
     }
 
-    // New entries: product name → derived style
     const colorMap = Object.fromEntries(
-      App.products.map(p => {
-        const s = getColorFromProductName(p.name);
-        return [p.name, { label: p.name, bg: s.bg, text: s.text, border: s.border }];
-      })
+      App.products.map(p => [p.name, { label: p.name, bg: '#e5e7eb', text: '#374151' }])
     );
-    // Legacy fallback: old entries that stored raw color codes (negro, rojo, etc.)
-    PRODUCTION_COLORS.forEach(c => { if (!colorMap[c.value]) colorMap[c.value] = c; });
 
     container.innerHTML = data.map(entry => {
       const c = colorMap[entry.color] || { label: entry.color, bg: '#e5e7eb', text: '#374151' };
