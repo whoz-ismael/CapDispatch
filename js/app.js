@@ -347,7 +347,24 @@ function renderWindowSelectionMenu() {
 
         <p class="text-xs text-gray-400 uppercase font-semibold tracking-wide">Selecciona una ventana</p>
 
-        <!-- Despacho -->
+        <button id="menu-peso"
+          class="w-full text-left bg-white rounded-2xl border-2 border-teal-200 shadow-sm p-5 flex items-center gap-4 hover:border-teal-400 hover:bg-teal-50 active:scale-95 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-base font-bold text-gray-800">Peso de paquete</p>
+            <p class="text-sm text-gray-400 mt-0.5">Registrar el peso de 1,000 tapas del turno</p>
+          </div>
+          <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+
+        <!-- Salida de mercancia -->
         <button id="menu-despacho"
           class="w-full text-left bg-white rounded-2xl border-2 border-blue-200 shadow-sm p-5 flex items-center gap-4 hover:border-blue-400 hover:bg-blue-50 active:scale-95 transition-all">
           <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -357,7 +374,7 @@ function renderWindowSelectionMenu() {
             </svg>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-base font-bold text-gray-800">Despacho</p>
+            <p class="text-base font-bold text-gray-800">Salida de mercancia</p>
             <p class="text-sm text-gray-400 mt-0.5">Registrar ventas de productos</p>
           </div>
           <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -385,8 +402,22 @@ function renderWindowSelectionMenu() {
         </button>
         ` : ''}
 
-        <!-- Sección: Peso y producción -->
-        <p class="text-xs text-gray-400 uppercase font-semibold tracking-wide mt-1">Peso y producción</p>
+        <button id="menu-tapas"
+          class="w-full text-left bg-white rounded-2xl border-2 border-purple-200 shadow-sm p-5 flex items-center gap-4 hover:border-purple-400 hover:bg-purple-50 active:scale-95 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-base font-bold text-gray-800">Registrar paquetes del día</p>
+            <p class="text-sm text-gray-400 mt-0.5">Ingresar paquetes producidos por color y cantidad</p>
+          </div>
+          <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
 
         <button id="menu-materia"
           class="w-full text-left bg-white rounded-2xl border-2 border-orange-200 shadow-sm p-5 flex items-center gap-4 hover:border-orange-400 hover:bg-orange-50 active:scale-95 transition-all">
@@ -405,23 +436,6 @@ function renderWindowSelectionMenu() {
           </svg>
         </button>
 
-        <button id="menu-peso"
-          class="w-full text-left bg-white rounded-2xl border-2 border-teal-200 shadow-sm p-5 flex items-center gap-4 hover:border-teal-400 hover:bg-teal-50 active:scale-95 transition-all">
-          <div class="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0">
-            <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-            </svg>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-base font-bold text-gray-800">Peso de paquete</p>
-            <p class="text-sm text-gray-400 mt-0.5">Registrar el peso de 1,000 tapas del turno</p>
-          </div>
-          <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-          </svg>
-        </button>
-
         <button id="menu-produccion"
           class="w-full text-left bg-white rounded-2xl border-2 border-green-200 shadow-sm p-5 flex items-center gap-4 hover:border-green-400 hover:bg-green-50 active:scale-95 transition-all">
           <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
@@ -433,23 +447,6 @@ function renderWindowSelectionMenu() {
           <div class="flex-1 min-w-0">
             <p class="text-base font-bold text-gray-800">Producción</p>
             <p class="text-sm text-gray-400 mt-0.5">Ver el reporte mensual de producción</p>
-          </div>
-          <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-          </svg>
-        </button>
-
-        <button id="menu-tapas"
-          class="w-full text-left bg-white rounded-2xl border-2 border-purple-200 shadow-sm p-5 flex items-center gap-4 hover:border-purple-400 hover:bg-purple-50 active:scale-95 transition-all">
-          <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
-            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-            </svg>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-base font-bold text-gray-800">Registrar tapas del día</p>
-            <p class="text-sm text-gray-400 mt-0.5">Ingresar tapas producidas por color y cantidad</p>
           </div>
           <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
