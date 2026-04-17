@@ -398,7 +398,7 @@ function renderWindowSelectionMenu() {
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-base font-bold text-gray-800">Entrada de materia prima</p>
-            <p class="text-sm text-gray-400 mt-0.5">Registrar reciclado, pellet y colorante</p>
+            <p class="text-sm text-gray-400 mt-0.5">Registrar tapas usadas, peletizado y colorante</p>
           </div>
           <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -448,8 +448,8 @@ function renderWindowSelectionMenu() {
             </svg>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-base font-bold text-gray-800">Registrar paquetes del día</p>
-            <p class="text-sm text-gray-400 mt-0.5">Ingresar paquetes producidos por color y cantidad</p>
+            <p class="text-base font-bold text-gray-800">Registrar tapas del día</p>
+            <p class="text-sm text-gray-400 mt-0.5">Ingresar tapas producidas por color y cantidad</p>
           </div>
           <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -622,10 +622,8 @@ function renderQuantityModal() {
         <div class="flex items-center gap-2">
           <span class="text-gray-400 font-medium">RD$</span>
           <input id="price-input" type="number" value="${App.editPrice}" min="0"
-            ${isSupervisor() ? '' : 'readonly'}
-            class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-lg font-bold text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-300${isSupervisor() ? '' : ' bg-gray-100 cursor-not-allowed opacity-60'}"/>
+            class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-lg font-bold text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-300"/>
         </div>
-        ${isSupervisor() ? '' : '<p class="text-xs text-gray-400 mt-1">Solo los supervisores pueden cambiar el precio.</p>'}
       </div>
 
       <!-- Cantidad -->
@@ -1744,9 +1742,9 @@ function renderAccountModal(acc = null) {
 // ─── PANTALLA: ENTRADA DE MATERIA PRIMA ──────────────────────────────────────
 
 const MATERIAL_TYPES = [
-  { value: 'recycled',       label: 'Reciclado'     },
-  { value: 'pellet',         label: 'Pellet Virgen'  },
-  { value: 'pellet_regular', label: 'Pellet'         },
+  { value: 'recycled',       label: 'Tapas usadas'     },
+  { value: 'pellet',         label: 'Peletizado virgen'  },
+  { value: 'pellet_regular', label: 'Peletizado'         },
   { value: 'colorant',       label: 'Colorante'      },
 ];
 
@@ -2137,10 +2135,7 @@ async function initApp() {
 // ─── PANTALLA: REGISTRO DIARIO DE TAPAS ──────────────────────────────────────
 
 
-let _selectedColor     = null;
-let _selectedProductId = null;
-let _selectedMachineId = null;
-let _selectedShift     = null;
+let _selectedColor = null;
 
 function getCurrentDate() {
   const now = new Date();
@@ -2148,30 +2143,15 @@ function getCurrentDate() {
 }
 
 async function renderDailyProductionScreen() {
-  _selectedColor     = null;
-  _selectedProductId = null;
-  _selectedMachineId = null;
-  _selectedShift     = null;
-
+  _selectedColor = null;
   const today = getCurrentDate();
-
-  // Fetch active machines for dropdown
-  let machines = [];
-  try {
-    const { data: mdata } = await supabaseRequest('machines?is_active=eq.true&select=id,name,code&order=name.asc');
-    if (mdata) machines = mdata;
-  } catch (_) {}
-
-  const machineOptions = machines.length === 0
-    ? '<option value="">Sin máquinas disponibles</option>'
-    : machines.map(m => `<option value="${m.id}">${m.code} — ${m.name}</option>`).join('');
 
   $('app').innerHTML = `
     <div class="min-h-screen bg-gray-50 flex flex-col">
       <header class="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
         <button id="back-btn" class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors flex-shrink-0">←</button>
         <div>
-          <h1 class="text-base font-bold text-gray-800">Registrar paquetes del día</h1>
+          <h1 class="text-base font-bold text-gray-800">Registrar tapas del día</h1>
           <p class="text-xs text-gray-400">${App.user?.name || ''}</p>
         </div>
       </header>
@@ -2192,7 +2172,7 @@ async function renderDailyProductionScreen() {
             ${App.products.length === 0
               ? `<p class="col-span-3 text-gray-400 text-sm text-center py-2">Sin productos disponibles</p>`
               : App.products.map(p => {
-                  return `<button data-color="${p.name}" data-product-id="${p.id}"
+                  return `<button data-color="${p.name}"
                     class="color-chip flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-gray-200 text-sm font-semibold transition-all bg-gray-50 text-gray-800 hover:bg-gray-100">
                     ${p.name}
                   </button>`;
@@ -2200,30 +2180,9 @@ async function renderDailyProductionScreen() {
           </div>
         </div>
 
-        <!-- Turno -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Turno</label>
-          <div class="grid grid-cols-3 gap-2">
-            ${['Matutino','Vespertino','Nocturno'].map(s => `
-              <button data-shift="${s}" class="shift-chip px-3 py-2 rounded-xl border-2 border-gray-200 text-sm font-semibold transition-all bg-gray-50 text-gray-800 hover:bg-gray-100">
-                ${s}
-              </button>`).join('')}
-          </div>
-        </div>
-
-        <!-- Máquina -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Máquina</label>
-          <select id="prod-machine"
-            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white">
-            <option value="">— Selecciona una máquina —</option>
-            ${machineOptions}
-          </select>
-        </div>
-
         <!-- Cantidad -->
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Cantidad de paquetes</label>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Cantidad de tapas</label>
           <input id="prod-qty" type="number" min="1" placeholder="Ej: 5000"
             class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300"/>
         </div>
@@ -2255,30 +2214,14 @@ async function renderDailyProductionScreen() {
 
   $('back-btn').addEventListener('click', renderWindowSelectionMenu);
 
-  // Selección de producto
+  // Selección de color
   document.querySelectorAll('.color-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.color-chip').forEach(b => b.style.outline = 'none');
-      _selectedColor     = btn.dataset.color;
-      _selectedProductId = btn.dataset.productId;
+      _selectedColor = btn.dataset.color;
       btn.style.outline = '3px solid #7c3aed';
       btn.style.outlineOffset = '2px';
     });
-  });
-
-  // Selección de turno
-  document.querySelectorAll('.shift-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.shift-chip').forEach(b => b.style.outline = 'none');
-      _selectedShift = btn.dataset.shift;
-      btn.style.outline = '3px solid #7c3aed';
-      btn.style.outlineOffset = '2px';
-    });
-  });
-
-  // Selección de máquina
-  $('prod-machine').addEventListener('change', e => {
-    _selectedMachineId = e.target.value || null;
   });
 
   $('prod-submit').addEventListener('click', handleDailyProductionSubmit);
@@ -2292,15 +2235,7 @@ async function handleDailyProductionSubmit() {
   const notes = ($('prod-notes').value || '').trim();
 
   if (!_selectedColor) {
-    alert('Selecciona un producto antes de guardar.');
-    return;
-  }
-  if (!_selectedShift) {
-    alert('Selecciona un turno antes de guardar.');
-    return;
-  }
-  if (!_selectedMachineId) {
-    alert('Selecciona una máquina antes de guardar.');
+    alert('Selecciona un color antes de guardar.');
     return;
   }
   if (!qty || qty < 1) {
@@ -2323,9 +2258,6 @@ async function handleDailyProductionSubmit() {
     production_date: date,
     month:           date.slice(0, 7),
     color:           _selectedColor,
-    product_id:      _selectedProductId,
-    machine_id:      _selectedMachineId,
-    shift:           _selectedShift,
     quantity:        qty,
     notes:           notes,
     status:          'pending_review',
@@ -2344,19 +2276,14 @@ async function handleDailyProductionSubmit() {
     }
 
     // Limpiar formulario
-    _selectedColor     = null;
-    _selectedProductId = null;
-    _selectedMachineId = null;
-    _selectedShift     = null;
+    _selectedColor = null;
     document.querySelectorAll('.color-chip').forEach(b => b.style.outline = 'none');
-    document.querySelectorAll('.shift-chip').forEach(b => b.style.outline = 'none');
-    $('prod-machine').value = '';
     $('prod-qty').value = '';
     $('prod-notes').value = '';
 
     await loadTodayEntries($('prod-date').value);
   } catch (err) {
-    console.error('Error guardando registro de paquetes:', err);
+    console.error('Error guardando registro de tapas:', err);
     showToast('Error al guardar — intenta de nuevo', 'error');
   } finally {
     btn.disabled = false;
@@ -2391,7 +2318,7 @@ async function loadTodayEntries(date) {
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
           <span class="w-4 h-4 rounded-full flex-shrink-0 border" style="background:${c.bg}; border-color:${c.border || c.bg};"></span>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-bold text-gray-800">${c.label} — ${entry.quantity.toLocaleString('es-DO')} paquetes</p>
+            <p class="text-sm font-bold text-gray-800">${c.label} — ${entry.quantity.toLocaleString('es-DO')} tapas</p>
             ${entry.notes ? `<p class="text-xs text-gray-400 truncate">${entry.notes}</p>` : ''}
           </div>
           ${statusBadge}
