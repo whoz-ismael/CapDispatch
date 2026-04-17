@@ -398,7 +398,7 @@ function renderWindowSelectionMenu() {
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-base font-bold text-gray-800">Entrada de materia prima</p>
-            <p class="text-sm text-gray-400 mt-0.5">Registrar reciclado, pellet y colorante</p>
+            <p class="text-sm text-gray-400 mt-0.5">Registrar tapas usadas, peletizado y colorante</p>
           </div>
           <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -1742,9 +1742,9 @@ function renderAccountModal(acc = null) {
 // ─── PANTALLA: ENTRADA DE MATERIA PRIMA ──────────────────────────────────────
 
 const MATERIAL_TYPES = [
-  { value: 'recycled',       label: 'Reciclado'     },
-  { value: 'pellet',         label: 'Pellet Virgen'  },
-  { value: 'pellet_regular', label: 'Pellet'         },
+  { value: 'recycled',       label: 'Tapas usadas'     },
+  { value: 'pellet',         label: 'Peletizado virgen'  },
+  { value: 'pellet_regular', label: 'Peletizado'         },
   { value: 'colorant',       label: 'Colorante'      },
 ];
 
