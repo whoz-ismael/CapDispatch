@@ -356,7 +356,7 @@ function renderWindowSelectionMenu() {
             </svg>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-base font-bold text-gray-800">Peso de paquete</p>
+            <p class="text-base font-bold text-gray-800">Peso de paquetes</p>
             <p class="text-sm text-gray-400 mt-0.5">Registrar el peso de 1,000 tapas del turno</p>
           </div>
           <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1964,7 +1964,7 @@ function renderPackageWeightScreen() {
           </svg>
         </button>
         <div>
-          <h1 class="text-base font-bold text-gray-800">Peso de Paquete de Tapas</h1>
+          <h1 class="text-base font-bold text-gray-800">Peso de paquetes</h1>
           <p class="text-xs text-gray-400">Registra el peso de 1,000 tapas de tu turno</p>
         </div>
       </header>
@@ -2148,7 +2148,7 @@ async function renderDailyProductionScreen() {
       <header class="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
         <button id="back-btn" class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors flex-shrink-0">←</button>
         <div>
-          <h1 class="text-base font-bold text-gray-800">Registrar tapas del día</h1>
+          <h1 class="text-base font-bold text-gray-800">Registrar paquetes del día</h1>
           <p class="text-xs text-gray-400">${App.user?.name || ''}</p>
         </div>
       </header>
