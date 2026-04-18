@@ -769,7 +769,7 @@ function renderCustomerScreen() {
 
 function renderPaymentScreen() {
   const isInvestor = App.selectedCustomer?.isInvestor && App.investorData;
-  if (isInvestor) App.paymentMethod = 'transfer';
+  if (isInvestor) App.paymentMethod = 'credito';
   let remainingDebt = isInvestor ? Number(App.investorData.total_debt) || 0 : 0;
 
   let totalRevenue = 0, totalBenefitDiscount = 0, totalAmortization = 0;
