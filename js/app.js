@@ -2094,9 +2094,22 @@ async function savePackageWeight(data) {
 // ─── INICIALIZACIÓN ───────────────────────────────────────────────────────────
 
 async function initApp() {
-  // Registrar el service worker
+  // Registrar el service worker con detección automática de actualizaciones
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(err => {
+    // Captura ANTES de registrar para distinguir primera instalación de actualización
+    const hadController = !!navigator.serviceWorker.controller;
+
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      // Cuando un nuevo SW toma el control, recargar para ejecutar el código nuevo
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hadController) window.location.reload();
+      });
+
+      // Verificar actualizaciones al recuperar conexión y cada 5 minutos
+      const checkUpdate = () => { if (navigator.onLine) reg.update(); };
+      window.addEventListener('online', checkUpdate);
+      setInterval(checkUpdate, 5 * 60 * 1000);
+    }).catch(err => {
       console.warn('Service worker no registrado:', err);
     });
   }

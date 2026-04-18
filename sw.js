@@ -1,4 +1,9 @@
-const CACHE_NAME = 'capdispatch-v3';
+// ─── VERSIÓN ─────────────────────────────────────────────────────────────────
+// ⚠ IMPORTANTE: Cambia CACHE_VERSION en cada deploy para que los tablets
+// reciban la nueva versión automáticamente (el app detecta el cambio y
+// recarga la página por sí solo).
+const CACHE_VERSION = 'v4';
+const CACHE_NAME    = `capdispatch-${CACHE_VERSION}`;
 
 // Solo activos locales — nunca URLs externas en addAll
 // (si una sola falla, addAll aborta toda la instalación)
