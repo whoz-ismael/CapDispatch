@@ -174,6 +174,36 @@ async function deactivateOperator(operatorId) {
   return { success: true };
 }
 
+// Actualiza el PIN de un operario existente
+// Devuelve { success, error }
+async function updateOperatorPin(operatorId, newPin) {
+  if (!newPin || newPin.length < 4) {
+    return { success: false, error: 'El PIN debe tener al menos 4 dígitos' };
+  }
+
+  const operators = await loadOperators();
+  const pinHash   = await hashPin(newPin.trim());
+  const duplicate = operators.find(op => op.pin_hash === pinHash && op.id !== operatorId);
+
+  if (duplicate) {
+    return { success: false, error: 'Ese PIN ya está en uso por otro operario' };
+  }
+
+  const { error } = await supabaseRequest(
+    `dispatch_operators?id=eq.${operatorId}`,
+    {
+      method: 'PATCH',
+      body:   { pin_hash: pinHash, updated_at: new Date().toISOString() },
+      prefer: 'return=minimal'
+    }
+  );
+
+  if (error) return { success: false, error: 'Error al actualizar el PIN' };
+
+  await loadOperators();
+  return { success: true };
+}
+
 // Lista todos los operarios activos (para el panel del supervisor)
 async function listOperators() {
   const { data, error } = await supabaseRequest(
