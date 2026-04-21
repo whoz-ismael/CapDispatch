@@ -135,6 +135,7 @@ async function createOperator({ name, pin, role }) {
     id:         generateId('op'),
     name:       name.trim(),
     pin_hash:   pinHash,
+    pin:        pin.trim(),
     role:       role,
     is_active:  true,
     created_at: new Date().toISOString(),
@@ -193,7 +194,7 @@ async function updateOperatorPin(operatorId, newPin) {
     `dispatch_operators?id=eq.${operatorId}`,
     {
       method: 'PATCH',
-      body:   { pin_hash: pinHash, updated_at: new Date().toISOString() },
+      body:   { pin_hash: pinHash, pin: newPin.trim(), updated_at: new Date().toISOString() },
       prefer: 'return=minimal'
     }
   );
@@ -207,7 +208,7 @@ async function updateOperatorPin(operatorId, newPin) {
 // Lista todos los operarios activos (para el panel del supervisor)
 async function listOperators() {
   const { data, error } = await supabaseRequest(
-    'dispatch_operators?is_active=eq.true&select=id,name,role,created_at&order=created_at.asc'
+    'dispatch_operators?is_active=eq.true&select=id,name,role,pin,created_at&order=created_at.asc'
   );
 
   if (error) return [];

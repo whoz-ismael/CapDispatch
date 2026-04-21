@@ -1451,6 +1451,12 @@ async function renderOperatorsTab(container) {
           <div>
             <p class="text-sm font-medium text-gray-800">${op.name}</p>
             <p class="text-xs text-gray-400">${op.role === 'supervisor' ? 'Supervisor' : 'Operario'}</p>
+            <p class="text-xs text-gray-400 mt-0.5">
+              PIN:
+              <span class="pin-mask font-mono">${op.pin ? '•'.repeat(op.pin.length) : '—'}</span>
+              <span class="pin-plain font-mono hidden">${op.pin ?? '—'}</span>
+              ${op.pin ? `<button data-op-id="${op.id}" class="toggle-pin-btn text-blue-400 hover:text-blue-600 ml-1 text-xs">Ver</button>` : ''}
+            </p>
           </div>
           <div class="flex items-center gap-2">
             <button data-op-id="${op.id}" data-op-name="${op.name}" class="change-pin-btn text-xs text-blue-500 hover:text-blue-600 font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">
@@ -1466,6 +1472,18 @@ async function renderOperatorsTab(container) {
   `;
 
   $('add-op-btn').addEventListener('click', () => renderAddOperatorModal());
+
+  document.querySelectorAll('.toggle-pin-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('div');
+      const mask  = card.querySelector('.pin-mask');
+      const plain = card.querySelector('.pin-plain');
+      const showing = !plain.classList.contains('hidden');
+      mask.classList.toggle('hidden', showing);
+      plain.classList.toggle('hidden', !showing);
+      btn.textContent = showing ? 'Ver' : 'Ocultar';
+    });
+  });
 
   document.querySelectorAll('.change-pin-btn').forEach(btn => {
     btn.addEventListener('click', () => renderChangePinModal(btn.dataset.opId, btn.dataset.opName));
