@@ -261,8 +261,10 @@ function renderPinScreen() {
     if (pin.length < 4 || isValidating) return;
     isValidating = true;
 
-    const result = await validatePin(pin);
-    if (result.success) {
+    const pinAtSubmit = pin;
+    const result = await validatePin(pinAtSubmit);
+    // Only proceed if the pin hasn't changed while we were waiting
+    if (result.success && pin === pinAtSubmit) {
       App.user = result.user;
       await loadAppData();
       renderWindowSelectionMenu();
@@ -1453,15 +1455,24 @@ async function renderOperatorsTab(container) {
             <p class="text-sm font-medium text-gray-800">${op.name}</p>
             <p class="text-xs text-gray-400">${op.role === 'supervisor' ? 'Supervisor' : 'Operario'}</p>
           </div>
-          ${op.id !== App.user?.id ? `
+          <div class="flex items-center gap-2">
+            <button data-op-id="${op.id}" data-op-name="${op.name}" class="change-pin-btn text-xs text-blue-500 hover:text-blue-600 font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">
+              Cambiar PIN
+            </button>
+            ${op.id !== App.user?.id ? `
             <button data-op-id="${op.id}" class="deactivate-btn text-xs text-red-400 hover:text-red-500 font-medium px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">
               Desactivar
             </button>` : '<span class="text-xs text-gray-300">Tú</span>'}
+          </div>
         </div>`).join('')}
     </div>
   `;
 
   $('add-op-btn').addEventListener('click', () => renderAddOperatorModal());
+
+  document.querySelectorAll('.change-pin-btn').forEach(btn => {
+    btn.addEventListener('click', () => renderChangePinModal(btn.dataset.opId, btn.dataset.opName));
+  });
 
   document.querySelectorAll('.deactivate-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -1535,6 +1546,65 @@ function renderAddOperatorModal() {
       showToast(result.error, 'error');
       $('save-op-btn').textContent = 'Crear operario';
       $('save-op-btn').disabled = false;
+    }
+  });
+}
+
+function renderChangePinModal(opId, opName) {
+  const existing = document.querySelector('.cd-modal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'cd-modal fixed inset-0 bg-black/40 z-30 flex items-end justify-center';
+
+  overlay.innerHTML = `
+    <div class="bg-white w-full max-w-lg rounded-t-3xl p-5 shadow-xl">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-base font-bold text-gray-800">Cambiar PIN — ${opName}</h2>
+        <button id="modal-close" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">✕</button>
+      </div>
+      <div class="space-y-3 mb-4">
+        <div>
+          <label class="text-xs text-gray-400 uppercase font-semibold tracking-wide mb-1 block">Nuevo PIN</label>
+          <input id="new-pin" type="password" inputmode="numeric" placeholder="Mínimo 4 dígitos" maxlength="8"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"/>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 uppercase font-semibold tracking-wide mb-1 block">Confirmar PIN</label>
+          <input id="confirm-pin" type="password" inputmode="numeric" placeholder="Repite el PIN" maxlength="8"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"/>
+        </div>
+      </div>
+      <button id="save-pin-btn"
+        class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors">
+        Guardar PIN
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  $('modal-close').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+  $('save-pin-btn').addEventListener('click', async () => {
+    const newPin     = $('new-pin').value.trim();
+    const confirmPin = $('confirm-pin').value.trim();
+
+    if (!newPin || newPin.length < 4) { showToast('El PIN debe tener al menos 4 dígitos', 'warning'); return; }
+    if (!/^\d+$/.test(newPin))        { showToast('El PIN solo puede contener números', 'warning'); return; }
+    if (newPin !== confirmPin)         { showToast('Los PINs no coinciden', 'warning'); return; }
+
+    $('save-pin-btn').textContent = 'Guardando...';
+    $('save-pin-btn').disabled = true;
+
+    const result = await updateOperatorPin(opId, newPin);
+    if (result.success) {
+      showToast('PIN actualizado', 'success');
+      overlay.remove();
+    } else {
+      showToast(result.error, 'error');
+      $('save-pin-btn').textContent = 'Guardar PIN';
+      $('save-pin-btn').disabled = false;
     }
   });
 }
