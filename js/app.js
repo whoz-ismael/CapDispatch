@@ -5,6 +5,10 @@
 // Maneja todas las pantallas, el flujo de ventas y la lógica de negocio.
 // Depende de: config.js, idb.js, cost.js, sync.js, auth.js
 
+// ⚠ Actualiza este valor en cada deploy para que el supervisor pueda confirmar
+// que los tablets están corriendo la versión correcta.
+const APP_VERSION = '1.0.0';
+
 // ─── ESTADO GLOBAL ────────────────────────────────────────────────────────────
 const App = {
   user:             null,   // usuario logueado {id, name, role}
@@ -335,6 +339,7 @@ function renderWindowSelectionMenu() {
             <p class="text-sm font-semibold text-gray-800">${App.user?.name}</p>
             <span id="connection-badge" class="text-xs"></span>
           </div>
+          <span class="text-xs text-gray-300 font-mono ml-1">v${APP_VERSION}</span>
         </div>
         <button id="logout-btn" class="p-3 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors" title="Cerrar sesión">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
