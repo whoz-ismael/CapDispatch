@@ -1,35 +1,22 @@
-// ─── VERSIÓN ─────────────────────────────────────────────────────────────────
-// ⚠ IMPORTANTE: Cambia CACHE_VERSION en cada deploy para que los tablets
-// reciban la nueva versión automáticamente (el app detecta el cambio y
-// recarga la página por sí solo).
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME    = `capdispatch-${CACHE_VERSION}`;
 
-// Solo activos locales — nunca URLs externas en addAll
-// (si una sola falla, addAll aborta toda la instalación)
+// Pre-cached on install for offline support.
+// JS files are intentionally excluded here — they use network-first below
+// so new deploys are picked up immediately without bumping CACHE_VERSION.
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/css/styles.css',
-  '/js/config.js',
-  '/js/idb.js',
-  '/js/cost.js',
-  '/js/sync.js',
-  '/js/auth.js',
-  '/js/app.js'
 ];
 
 // ─── INSTALL ─────────────────────────────────────────────────────────────────
-// Se ejecuta una sola vez cuando el service worker se instala.
-// Guarda todos los archivos estáticos en caché.
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async cache => {
-      // Cachea activos locales (crítico — debe completarse)
       await cache.addAll(STATIC_ASSETS);
 
-      // Intenta cachear el CDN externo, pero no bloquea la instalación si falla
       try {
         const req = new Request('https://cdn.tailwindcss.com', { mode: 'no-cors' });
         const res = await fetch(req);
@@ -39,13 +26,10 @@ self.addEventListener('install', event => {
       }
     })
   );
-  // Activa inmediatamente sin esperar a que se cierren las pestañas anteriores
   self.skipWaiting();
 });
 
 // ─── ACTIVATE ────────────────────────────────────────────────────────────────
-// Se ejecuta cuando el service worker toma el control.
-// Limpia cachés viejas y reclama clientes dentro del mismo waitUntil.
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
@@ -56,57 +40,69 @@ self.addEventListener('activate', event => {
             .map(key => caches.delete(key))
         )
       )
-      // clients.claim() dentro de waitUntil garantiza que el SW toma
-      // control de todas las pestañas antes de que finalice la activación
       .then(() => self.clients.claim())
   );
 });
 
 // ─── FETCH ───────────────────────────────────────────────────────────────────
-// Se ejecuta en cada petición de red que hace la app.
-// Estrategia:
-//   - Peticiones a Supabase → Network first, sin caché (datos siempre frescos)
-//   - Todo lo demás       → Cache first (archivos estáticos de la app)
+// Strategies:
+//   Supabase requests  → network only (no cache)
+//   Own .js files      → network first, cache as offline fallback
+//   Everything else    → cache first (HTML, CSS, manifest)
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  const isSupabase = url.hostname.includes('supabase.co');
 
-  if (isSupabase) {
-    // Network first: intenta la red, si falla devuelve 503
-    // (la lógica offline de Supabase la maneja idb.js + sync.js)
+  if (url.hostname.includes('supabase.co')) {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return new Response(JSON.stringify({ error: 'offline' }), {
+      fetch(event.request).catch(() =>
+        new Response(JSON.stringify({ error: 'offline' }), {
           status: 503,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      })
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
     );
     return;
   }
 
-  // Cache first para archivos estáticos
+  // Network first for own JS files — always serves the latest deploy.
+  // Falls back to cache so the app still works offline.
+  if (url.origin === self.location.origin && url.pathname.endsWith('.js')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          if (response && response.status === 200) {
+            const cloned = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, cloned));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(event.request).then(r => r || new Response('', { status: 503 }))
+        )
+    );
+    return;
+  }
+
+  // Cache first for everything else (HTML, CSS, manifest)
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
 
-      // No está en caché, intenta la red y guarda el resultado
-      return fetch(event.request).then(response => {
-        // Cachea respuestas válidas (incluye opaque del CDN externo)
-        if (!response || (response.status !== 200 && response.type !== 'opaque')) {
+      return fetch(event.request)
+        .then(response => {
+          if (!response || (response.status !== 200 && response.type !== 'opaque')) {
+            return response;
+          }
+          const cloned = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, cloned));
           return response;
-        }
-        const cloned = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, cloned));
-        return response;
-      }).catch(() => {
-        // Petición de navegación sin red ni caché → sirve el index
-        if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
-        // Para otros recursos (scripts, imágenes, etc.) devuelve 503
-        return new Response('', { status: 503 });
-      });
+        })
+        .catch(() => {
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+          return new Response('', { status: 503 });
+        });
     })
   );
 });

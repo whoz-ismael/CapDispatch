@@ -7,7 +7,7 @@
 
 // ⚠ Actualiza este valor en cada deploy para que el supervisor pueda confirmar
 // que los tablets están corriendo la versión correcta.
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.1';
 
 // ─── ESTADO GLOBAL ────────────────────────────────────────────────────────────
 const App = {
@@ -2195,7 +2195,7 @@ async function initApp() {
     // Captura ANTES de registrar para distinguir primera instalación de actualización
     const hadController = !!navigator.serviceWorker.controller;
 
-    navigator.serviceWorker.register('/sw.js').then(reg => {
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(reg => {
       // Cuando un nuevo SW toma el control, recargar para ejecutar el código nuevo
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (hadController) window.location.reload();
