@@ -370,7 +370,7 @@ function renderWindowSelectionMenu() {
           </svg>
         </button>
 
-        <!-- Salida de mercancia -->
+        <!-- Salida de mercancía -->
         <button id="menu-despacho"
           class="w-full text-left bg-white rounded-2xl border-2 border-blue-200 shadow-sm p-5 flex items-center gap-4 hover:border-blue-400 hover:bg-blue-50 active:scale-95 transition-all">
           <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -380,7 +380,7 @@ function renderWindowSelectionMenu() {
             </svg>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-base font-bold text-gray-800">Salida de mercancia</p>
+            <p class="text-base font-bold text-gray-800">Salida de mercancía</p>
             <p class="text-sm text-gray-400 mt-0.5">Registrar ventas de productos</p>
           </div>
           <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
