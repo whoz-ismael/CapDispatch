@@ -1453,9 +1453,11 @@ async function renderOperatorsTab(container) {
             <p class="text-xs text-gray-400">${op.role === 'supervisor' ? 'Supervisor' : 'Operario'}</p>
             <div class="flex items-center gap-1.5 mt-0.5">
               <span class="text-xs text-gray-400">PIN:</span>
-              <span class="pin-mask font-mono text-xs text-gray-500">${op.pin ? '•'.repeat(op.pin.length) : '—'}</span>
-              <span class="pin-plain font-mono text-xs text-gray-800 hidden">${op.pin ?? '—'}</span>
-              ${op.pin ? `<button data-op-id="${op.id}" class="toggle-pin-btn text-xs text-blue-500 underline hover:text-blue-700 transition-colors">Ver</button>` : ''}
+              <span class="pin-mask font-mono text-xs text-gray-500">${op.pin ? '•'.repeat(op.pin.length) : ''}</span>
+              <span class="pin-plain font-mono text-xs text-gray-800 hidden">${op.pin ?? ''}</span>
+              ${op.pin
+                ? `<button data-op-id="${op.id}" class="toggle-pin-btn text-xs text-blue-500 underline hover:text-blue-700 transition-colors">Ver</button>`
+                : `<span class="text-xs text-gray-300 italic">usar Cambiar PIN para registrarlo</span>`}
             </div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
@@ -1475,13 +1477,13 @@ async function renderOperatorsTab(container) {
 
   document.querySelectorAll('.toggle-pin-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const row   = btn.closest('.bg-white');
-      const mask  = row.querySelector('.pin-mask');
-      const plain = row.querySelector('.pin-plain');
-      const showing = !plain.classList.contains('hidden');
-      mask.classList.toggle('hidden', showing);
-      plain.classList.toggle('hidden', !showing);
-      btn.textContent = showing ? 'Ver' : 'Ocultar';
+      const row    = btn.closest('.bg-white');
+      const mask   = row.querySelector('.pin-mask');
+      const plain  = row.querySelector('.pin-plain');
+      const isHidden = plain.classList.contains('hidden');
+      mask.classList.toggle('hidden', isHidden);
+      plain.classList.toggle('hidden', !isHidden);
+      btn.textContent = isHidden ? 'Ocultar' : 'Ver';
     });
   });
 
