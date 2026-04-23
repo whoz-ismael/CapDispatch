@@ -339,7 +339,6 @@ function renderWindowSelectionMenu() {
             <p class="text-sm font-semibold text-gray-800">${App.user?.name}</p>
             <span id="connection-badge" class="text-xs"></span>
           </div>
-          <span class="text-xs text-gray-300 font-mono ml-1">v${APP_VERSION}</span>
         </div>
         <button id="logout-btn" class="p-3 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors" title="Cerrar sesión">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -459,6 +458,8 @@ function renderWindowSelectionMenu() {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
           </svg>
         </button>
+
+        <p class="text-center text-xs text-gray-300 font-mono mt-2">v${APP_VERSION}</p>
 
       </main>
     </div>
