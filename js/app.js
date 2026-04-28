@@ -7,7 +7,7 @@
 
 // ⚠ Actualiza este valor en cada deploy para que el supervisor pueda confirmar
 // que los tablets están corriendo la versión correcta.
-const APP_VERSION = '1.0.1';
+const APP_VERSION = '1.0.2';
 
 // ─── ESTADO GLOBAL ────────────────────────────────────────────────────────────
 const App = {
@@ -21,6 +21,7 @@ const App = {
   paymentMethod:    'cash',
   pendingCount:     0,
   operators:        [],     // operarios de CapFlow para mostrar nombres en producción
+  machines:         [],     // máquinas activas (para registro de tapas diarias)
   transferAccounts: [],     // cuentas de transferencia activas
   activeModal:      null,   // 'quantity' | 'customer' | null
   editProduct:      null,   // producto seleccionado para agregar al carrito
@@ -172,6 +173,18 @@ async function loadAppData() {
   if (!opsErr && opsData) {
     App.operators = opsData;
     await cacheSet('capflow_operators', opsData);
+  }
+
+  // Máquinas activas (para registro de tapas diarias)
+  const machCached = await cacheGet('machines');
+  if (machCached) App.machines = machCached;
+
+  const { data: machData, error: machErr } = await supabaseRequest(
+    'machines?is_active=eq.true&select=id,name,code&order=name.asc'
+  );
+  if (!machErr && machData) {
+    App.machines = machData;
+    await cacheSet('machines', machData);
   }
 }
 
@@ -2241,7 +2254,8 @@ async function initApp() {
 // ─── PANTALLA: REGISTRO DIARIO DE TAPAS ──────────────────────────────────────
 
 
-let _selectedColor = null;
+let _selectedColor     = null;
+let _selectedProductId = null;
 
 function getCurrentDate() {
   const now = new Date();
@@ -2249,7 +2263,8 @@ function getCurrentDate() {
 }
 
 async function renderDailyProductionScreen() {
-  _selectedColor = null;
+  _selectedColor     = null;
+  _selectedProductId = null;
   const today = getCurrentDate();
 
   $('app').innerHTML = `
@@ -2278,12 +2293,34 @@ async function renderDailyProductionScreen() {
             ${App.products.length === 0
               ? `<p class="col-span-3 text-gray-400 text-sm text-center py-2">Sin productos disponibles</p>`
               : App.products.map(p => {
-                  return `<button data-color="${p.name}"
+                  return `<button data-color="${p.name}" data-product-id="${p.id}"
                     class="color-chip flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-gray-200 text-sm font-semibold transition-all bg-gray-50 text-gray-800 hover:bg-gray-100">
                     ${p.name}
                   </button>`;
                 }).join('')}
           </div>
+        </div>
+
+        <!-- Selector de máquina -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Máquina</label>
+          <select id="prod-machine"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white">
+            <option value="">— Selecciona una máquina —</option>
+            ${App.machines.map(m => `<option value="${m.id}">${m.name || m.code || m.id}</option>`).join('')}
+          </select>
+        </div>
+
+        <!-- Selector de turno -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Turno</label>
+          <select id="prod-shift"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white">
+            <option value="">— Selecciona un turno —</option>
+            <option value="Matutino">Matutino</option>
+            <option value="Vespertino">Vespertino</option>
+            <option value="Nocturno">Nocturno</option>
+          </select>
         </div>
 
         <!-- Cantidad -->
@@ -2324,7 +2361,8 @@ async function renderDailyProductionScreen() {
   document.querySelectorAll('.color-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.color-chip').forEach(b => b.style.outline = 'none');
-      _selectedColor = btn.dataset.color;
+      _selectedColor     = btn.dataset.color;
+      _selectedProductId = btn.dataset.productId || null;
       btn.style.outline = '3px solid #7c3aed';
       btn.style.outlineOffset = '2px';
     });
@@ -2336,12 +2374,22 @@ async function renderDailyProductionScreen() {
 }
 
 async function handleDailyProductionSubmit() {
-  const date  = $('prod-date').value;
-  const qty   = parseInt($('prod-qty').value, 10);
-  const notes = ($('prod-notes').value || '').trim();
+  const date      = $('prod-date').value;
+  const qty       = parseInt($('prod-qty').value, 10);
+  const notes     = ($('prod-notes').value || '').trim();
+  const machineId = ($('prod-machine')?.value || '').trim();
+  const shift     = ($('prod-shift')?.value   || '').trim();
 
   if (!_selectedColor) {
-    alert('Selecciona un color antes de guardar.');
+    alert('Selecciona un producto antes de guardar.');
+    return;
+  }
+  if (!machineId) {
+    alert('Selecciona una máquina antes de guardar.');
+    return;
+  }
+  if (!shift) {
+    alert('Selecciona un turno antes de guardar.');
     return;
   }
   if (!qty || qty < 1) {
@@ -2352,6 +2400,10 @@ async function handleDailyProductionSubmit() {
     alert('Selecciona una fecha.');
     return;
   }
+
+  const productId = _selectedProductId
+    || App.products.find(p => p.name === _selectedColor)?.id
+    || null;
 
   const btn = $('prod-submit');
   btn.disabled = true;
@@ -2364,6 +2416,9 @@ async function handleDailyProductionSubmit() {
     production_date: date,
     month:           date.slice(0, 7),
     color:           _selectedColor,
+    product_id:      productId,
+    machine_id:      machineId,
+    shift:           shift,
     quantity:        qty,
     notes:           notes,
     status:          'pending_review',
@@ -2382,10 +2437,13 @@ async function handleDailyProductionSubmit() {
     }
 
     // Limpiar formulario
-    _selectedColor = null;
+    _selectedColor     = null;
+    _selectedProductId = null;
     document.querySelectorAll('.color-chip').forEach(b => b.style.outline = 'none');
     $('prod-qty').value = '';
     $('prod-notes').value = '';
+    if ($('prod-machine')) $('prod-machine').value = '';
+    if ($('prod-shift'))   $('prod-shift').value   = '';
 
     await loadTodayEntries($('prod-date').value);
   } catch (err) {
