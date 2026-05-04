@@ -7,7 +7,7 @@
 
 // ⚠ Actualiza este valor en cada deploy para que el supervisor pueda confirmar
 // que los tablets están corriendo la versión correcta.
-const APP_VERSION = '1.0.2';
+const APP_VERSION = '1.0.3';
 
 // ─── ESTADO GLOBAL ────────────────────────────────────────────────────────────
 const App = {
@@ -1091,11 +1091,20 @@ async function loadProductionData(month) {
   const container = $('production-results');
   if (!container) return;
 
-  const { data, error } = await supabaseRequest(
-    `production?month=eq.${month}&select=production_date,operator_id,quantity&order=production_date.asc`
-  );
+  const isSup = App.user?.role === ROLES.SUPERVISOR;
 
-  if (error) {
+  const [confirmedRes, pendingRes] = await Promise.all([
+    supabaseRequest(
+      `production?month=eq.${month}&select=production_date,operator_id,quantity&order=production_date.asc`
+    ),
+    isSup
+      ? supabaseRequest(
+          `daily_production_logs?month=eq.${month}&status=eq.pending_review&select=production_date,operator_id,operator_name,quantity&order=production_date.asc`
+        )
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (confirmedRes.error) {
     container.innerHTML = `
       <div class="bg-red-50 border border-red-100 rounded-2xl px-4 py-4 text-center">
         <p class="text-red-500 text-sm font-medium">Error al cargar la producción</p>
@@ -1103,7 +1112,10 @@ async function loadProductionData(month) {
     return;
   }
 
-  if (!data || data.length === 0) {
+  const confirmedData = confirmedRes.data || [];
+  const pendingData   = (pendingRes && !pendingRes.error && pendingRes.data) ? pendingRes.data : [];
+
+  if (confirmedData.length === 0 && pendingData.length === 0) {
     container.innerHTML = `
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-10 text-center">
         <p class="text-2xl mb-2">📦</p>
@@ -1113,49 +1125,79 @@ async function loadProductionData(month) {
     return;
   }
 
+  const html = [];
+  if (confirmedData.length > 0) html.push(_buildProductionGrid(confirmedData, 'confirmed'));
+  if (pendingData.length   > 0) html.push(_buildProductionGrid(pendingData,   'pending'));
+  container.innerHTML = html.join('');
+}
+
+function _buildProductionGrid(rows, variant) {
+  const isPending = variant === 'pending';
+
   // Construir mapa: { 'YYYY-MM-DD': { operatorId: totalQty } }
   const byDate = {};
-  const operatorIds = new Set();
+  const opNames = {};
 
-  data.forEach(row => {
+  rows.forEach(row => {
     const date = row.production_date;
     const opId = row.operator_id;
     const qty  = Number(row.quantity) || 0;
     if (!byDate[date]) byDate[date] = {};
     byDate[date][opId] = (byDate[date][opId] || 0) + qty;
-    operatorIds.add(opId);
+    if (!opNames[opId]) {
+      const op = App.operators.find(o => o.id === opId);
+      opNames[opId] = op?.name || row.operator_name || 'Desconocido';
+    }
   });
 
-  // Resolver nombres — solo operarios que tienen producción ese mes (reporte mensual)
-  const operators = [...operatorIds].map(id => {
-    const op = App.operators.find(o => o.id === id);
-    return { id, name: op?.name || 'Desconocido' };
-  }).sort((a, b) => a.name.localeCompare(b.name));
+  const operators = Object.entries(opNames)
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const dates = Object.keys(byDate).sort();
-
-  // Nombres de día en español
   const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
-  // Totales por operario (columna total)
   const opTotals = {};
   operators.forEach(op => {
     opTotals[op.id] = dates.reduce((s, d) => s + (byDate[d][op.id] || 0), 0);
   });
-
   const grandTotal = Object.values(opTotals).reduce((s, v) => s + v, 0);
 
-  // Renderizar tabla con scroll horizontal
-  container.innerHTML = `
-    <div class="overflow-x-auto rounded-2xl border border-gray-100 shadow-sm bg-white">
+  // Paleta según variante
+  const wrapBorder = isPending ? 'border-amber-200' : 'border-gray-100';
+  const wrapBg     = isPending ? 'bg-amber-50'      : 'bg-white';
+  const evenBg     = isPending ? 'bg-amber-50'      : 'bg-white';
+  const oddBg      = isPending ? 'bg-amber-100'     : 'bg-gray-50';
+  const footBg     = isPending ? 'bg-amber-100'     : 'bg-gray-50';
+  const headBorder = isPending ? 'border-amber-200' : 'border-gray-100';
+  const rowBorder  = isPending ? 'border-amber-100' : 'border-gray-50';
+  const footBorder = isPending ? 'border-amber-300' : 'border-gray-200';
+  const colBorder  = isPending ? 'border-amber-200' : 'border-gray-100';
+  const headLabel  = isPending ? 'text-amber-700'   : 'text-gray-400';
+  const headOp     = isPending ? 'text-amber-800'   : 'text-gray-600';
+  const dayText    = isPending ? 'text-amber-900'   : 'text-gray-800';
+  const dayNameTxt = isPending ? 'text-amber-500'   : 'text-gray-400';
+  const cellOn     = isPending ? 'text-amber-900'   : 'text-gray-800';
+  const cellOff    = isPending ? 'text-amber-200'   : 'text-gray-200';
+  const totalText  = isPending ? 'text-amber-700'   : 'text-blue-600';
+  const footLabel  = isPending ? 'text-amber-700'   : 'text-gray-500';
+  const footValue  = isPending ? 'text-amber-900'   : 'text-gray-800';
+
+  const heading = isPending
+    ? `<p class="text-xs font-bold text-amber-700 uppercase tracking-wide mt-4 mb-2 px-1">Pendientes de confirmación</p>`
+    : '';
+
+  return `
+    ${heading}
+    <div class="overflow-x-auto rounded-2xl border ${wrapBorder} shadow-sm ${wrapBg}">
       <table class="w-full text-sm border-collapse" style="min-width: ${180 + operators.length * 90}px;">
         <thead>
-          <tr class="border-b-2 border-gray-100">
-            <th class="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wide sticky left-0 bg-white z-10 border-r border-gray-100" style="min-width:110px;">Fecha</th>
+          <tr class="border-b-2 ${headBorder}">
+            <th class="text-left px-4 py-3 text-xs font-bold ${headLabel} uppercase tracking-wide sticky left-0 ${wrapBg} z-10 border-r ${colBorder}" style="min-width:110px;">Fecha</th>
             ${operators.map(op => `
-              <th class="px-3 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wide" style="min-width:90px;">${op.name.split(' ')[0]}</th>
+              <th class="px-3 py-3 text-center text-xs font-bold ${headOp} uppercase tracking-wide" style="min-width:90px;">${op.name.split(' ')[0]}</th>
             `).join('')}
-            <th class="px-3 py-3 text-center text-xs font-bold text-gray-400 uppercase tracking-wide" style="min-width:80px;">Total</th>
+            <th class="px-3 py-3 text-center text-xs font-bold ${headLabel} uppercase tracking-wide" style="min-width:80px;">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -1164,30 +1206,30 @@ async function loadProductionData(month) {
             const dayName = dayNames[d.getDay()];
             const dayNum  = d.getDate();
             const rowTotal = operators.reduce((s, op) => s + (byDate[date][op.id] || 0), 0);
-            const isEven   = i % 2 === 0;
+            const rowBg    = (i % 2 === 0) ? evenBg : oddBg;
             return `
-              <tr class="${isEven ? 'bg-white' : 'bg-gray-50'} border-b border-gray-50">
-                <td class="px-4 py-3 sticky left-0 z-10 border-r border-gray-100 ${isEven ? 'bg-white' : 'bg-gray-50'}">
-                  <span class="font-bold text-gray-800">${dayNum}</span>
-                  <span class="text-gray-400 text-xs ml-1">${dayName}</span>
+              <tr class="${rowBg} border-b ${rowBorder}">
+                <td class="px-4 py-3 sticky left-0 z-10 border-r ${colBorder} ${rowBg}">
+                  <span class="font-bold ${dayText}">${dayNum}</span>
+                  <span class="${dayNameTxt} text-xs ml-1">${dayName}</span>
                 </td>
                 ${operators.map(op => {
                   const qty = byDate[date][op.id] || 0;
-                  return `<td class="px-3 py-3 text-center font-semibold ${qty > 0 ? 'text-gray-800' : 'text-gray-200'}">${qty > 0 ? qty.toLocaleString('es-DO') : '—'}</td>`;
+                  return `<td class="px-3 py-3 text-center font-semibold ${qty > 0 ? cellOn : cellOff}">${qty > 0 ? qty.toLocaleString('es-DO') : '—'}</td>`;
                 }).join('')}
-                <td class="px-3 py-3 text-center font-bold text-blue-600">${rowTotal.toLocaleString('es-DO')}</td>
+                <td class="px-3 py-3 text-center font-bold ${totalText}">${rowTotal.toLocaleString('es-DO')}</td>
               </tr>`;
           }).join('')}
         </tbody>
         <tfoot>
-          <tr class="border-t-2 border-gray-200 bg-gray-50">
-            <td class="px-4 py-3 sticky left-0 bg-gray-50 z-10 border-r border-gray-100">
-              <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Total</span>
+          <tr class="border-t-2 ${footBorder} ${footBg}">
+            <td class="px-4 py-3 sticky left-0 ${footBg} z-10 border-r ${colBorder}">
+              <span class="text-xs font-bold ${footLabel} uppercase tracking-wide">Total</span>
             </td>
             ${operators.map(op => `
-              <td class="px-3 py-3 text-center font-extrabold text-gray-800">${opTotals[op.id].toLocaleString('es-DO')}</td>
+              <td class="px-3 py-3 text-center font-extrabold ${footValue}">${opTotals[op.id].toLocaleString('es-DO')}</td>
             `).join('')}
-            <td class="px-3 py-3 text-center font-extrabold text-blue-600">${grandTotal.toLocaleString('es-DO')}</td>
+            <td class="px-3 py-3 text-center font-extrabold ${totalText}">${grandTotal.toLocaleString('es-DO')}</td>
           </tr>
         </tfoot>
       </table>
